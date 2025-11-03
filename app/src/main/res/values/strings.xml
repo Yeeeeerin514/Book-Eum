@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">Book_M_Front</string>
+
+
+    <string name="login">로그인</string>
+    <string name="join">회원가입</string>
+    <string name="plot">줄거리</string>
+    <string name="table">목차</string>
+
+</resources>
