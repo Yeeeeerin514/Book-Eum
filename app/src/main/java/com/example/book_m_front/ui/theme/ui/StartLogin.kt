@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -48,11 +50,27 @@ fun StartLogin(){
         Spacer(modifier = Modifier.height(50.dp))
         Button(
             onClick = { /*TODO*/ },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.White
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 3.dp,
+                pressedElevation = 5.dp
+            ),
         ){
-            Text(text = stringResource(R.string.login))
+            Text(
+                text = stringResource(R.string.login),
+                color = AppColors.DeepGreen)
         }
         Button(
             onClick = { /*TODO*/ },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = AppColors.DeepGreen
+            ),
+            elevation = ButtonDefaults.buttonElevation(
+                defaultElevation = 3.dp,
+                pressedElevation = 5.dp
+            ),
         ){
             Text(text=stringResource(R.string.join))
         }

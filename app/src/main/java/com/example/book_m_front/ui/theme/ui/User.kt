@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -23,10 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
+import com.example.book_m_front.R
+
 
 class UserProfileActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -81,19 +86,13 @@ fun UserProfileScreen() {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // 점 3개 아이콘
-                        repeat(3) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(darkGreen)
-                            )
-                            if (it < 2) Spacer(modifier = Modifier.width(4.dp))
-                        }
+                        Image(
+                            painter = painterResource(R.drawable.minilogo),
+                            contentDescription = null
+                        )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "북음",
+                            text = "북-음",
                             fontWeight = FontWeight.Bold,
                             fontSize = 20.sp
                         )
@@ -166,7 +165,7 @@ fun UserProfileScreen() {
                 Button(
                     onClick = { showAddBookDialog = true },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = darkGreen
+                        containerColor = darkGreen.copy(alpha = 0.8f)
                     ),
                     shape = RoundedCornerShape(20.dp),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
@@ -259,7 +258,7 @@ fun UserProfileSection(darkGreen: Color) {
 fun SectionTitle(title: String) {
     Text(
         text = title,
-        fontSize = 18.sp,
+        fontSize = 17.sp,
         fontWeight = FontWeight.Bold
     )
 }
@@ -287,7 +286,7 @@ fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f)
+                .aspectRatio(0.8f)
                 .clip(RoundedCornerShape(8.dp))
                 .background(Color.LightGray)
         ) {
@@ -493,3 +492,12 @@ data class PlaylistItem(
     val title: String,
     val creator: String
 )
+//data class
+
+
+@Preview
+@Composable
+fun UserProfilePreview() {
+    UserProfileScreen()
+}
+

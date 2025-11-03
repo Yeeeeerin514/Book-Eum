@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.book_m_front.ui.theme.ui.EbookViewerScreen
+import com.example.book_m_front.ui.theme.ui.MusicPlayerScreen
 import com.example.book_m_front.ui.theme.ui.UserProfileScreen
 import com.example.book_m_front.ui.theme.ui_resource.Book_M_FrontTheme
 
@@ -31,7 +32,8 @@ class MainActivity : ComponentActivity() {
 
                 setContent {
                     MaterialTheme {
-                        UserProfileScreen()
+                        MusicPlayerScreen()
+                        //UserProfileScreen()
                         //EbookViewerScreen()
                     }
                 }

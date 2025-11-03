@@ -174,15 +174,16 @@ fun MusicPlayerPanel(
             ) {
                 Text(
                     text = "Now Playing 🎵",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = Color.White,
+                    modifier = Modifier.padding(start = 5.dp)
                 )
             }
 
             Divider(
-                color = Color.White.copy(alpha = 0.3f),
-                thickness = 1.dp,
+                color = Color.White.copy(alpha = 1.0f),
+                thickness = 0.5.dp,
                 modifier = Modifier.padding(bottom = 16.dp)
             )
 
@@ -224,6 +225,7 @@ fun MusicPlayerPanel(
                 IconButton(
                     onClick = onPlayPauseClick,
                     modifier = Modifier
+                        .padding(10.dp)
                         .size(56.dp)
                         .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
                 ) {
@@ -245,4 +247,10 @@ fun MusicPlayerPanel(
 @Composable
 fun EbookViewerScreenPreview() {
     EbookViewerScreen()
+    MusicPlayerPanel(
+        isPlaying = true,
+        onPlayPauseClick = { },
+        backgroundColor = AppColors.DeepGreen
+    )
+
 }
