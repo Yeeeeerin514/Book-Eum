@@ -31,12 +31,9 @@ class MainActivity : ComponentActivity() {
 
                 setContent {
                     MaterialTheme {
-                        EbookViewerScreen()
-                    }
-
-                    /*MaterialTheme {
                         UserProfileScreen()
-                    }*/
+                        //EbookViewerScreen()
+                    }
                 }
             }
         }

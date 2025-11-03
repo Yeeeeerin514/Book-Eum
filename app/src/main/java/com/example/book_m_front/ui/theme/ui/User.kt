@@ -198,8 +198,8 @@ fun UserProfileScreen() {
     if (showAddBookDialog) {
         AddBookDialog(
             onDismiss = { showAddBookDialog = false },
-            onConfirm = { bookTitle, author ->
-                // 책 추가 로직 구현
+            onConfirm = { bookTitle, author, isbn, plot ->
+                // 책 추가 로직 구현    아마 이 아래에 백엔드로 보내는 함수?
                 println("책 추가: $bookTitle by $author")
                 showAddBookDialog = false
             },
@@ -266,14 +266,6 @@ fun SectionTitle(title: String) {
 
 @Composable
 fun BookRow(books: List<BookItem>, darkGreen: Color, onBookClick: (BookItem) -> Unit) {
-    /*Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        books.take(4).forEach { book ->
-            BookCard(book, darkGreen, modifier = Modifier.weight(1f))
-        }
-    }*/
 
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -390,11 +382,14 @@ fun Badge(backgroundColor: Color, text: String) {
 @Composable
 fun AddBookDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String) -> Unit,
+    onConfirm: (String, String, String, String) -> Unit,
     darkGreen: Color
 ) {
     var bookTitle by remember { mutableStateOf("") }
     var author by remember { mutableStateOf("") }
+    var isbn by remember { mutableStateOf("") }
+    var plot by remember { mutableStateOf("") }
+
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -430,6 +425,22 @@ fun AddBookDialog(
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = isbn,
+                    onValueChange = { isbn = it },
+                    label = { Text("ISBN") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = plot,
+                    onValueChange = { plot = it },
+                    label = { Text("줄거리") },
+                    modifier = Modifier.fillMaxWidth(),
+                    maxLines = 10
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Button(
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
@@ -437,9 +448,9 @@ fun AddBookDialog(
                     ),
                     onClick = {
                     // 파일 유형 필터 설정 (예: 모든 파일 or 특정 MIME)
-                    filePickerLauncher.launch(arrayOf("*/*"))
+                    filePickerLauncher.launch(arrayOf("application/epub+zip"))
                 }) {
-                    Text("파일 선택하기")
+                    Text("EPUB 파일 선택하기")
                 }
 
                 selectedFileUri?.let {
@@ -447,11 +458,14 @@ fun AddBookDialog(
                 }
             }
         },
+        //확인 버튼.
         confirmButton = {
             Button(
                 onClick = {
-                    if (bookTitle.isNotBlank() && author.isNotBlank()) {
-                        onConfirm(bookTitle, author)
+                    if (bookTitle.isNotBlank() && author.isNotBlank()
+                        &&isbn.isNotBlank() && plot.isNotBlank()
+                        && selectedFileUri != null) {
+                        onConfirm(bookTitle, author, isbn, plot)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
