@@ -29,6 +29,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Book_M_FrontTheme {
+                //MusicPlayerScreen()
+                UserProfileScreen()
+                //EbookViewerScreen()
+
                 val navController = rememberNavController()
 
                 NavHost(

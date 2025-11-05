@@ -1,4 +1,5 @@
 package com.example.book_m_front.network
+import com.example.book_m_front.ui.theme.ui.PlaylistResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
@@ -44,10 +45,14 @@ interface ApiService{
     ): Response<BookUploadResponse>
 
     //책 가져오기 (isbn으로)
-    @GET("api/books/download/{isbn}")   //실제 엔드포인트로 변경 필요
+    @GET("/books/{isbn}/content")   //실제 엔드포인트로 변경 필요
     suspend fun downloadBook(
         @Path("isbn") isbn: String
     ): Response<ResponseBody>
+
+    //음악 플리? 가져오기
+    @GET("/books/{isbn}/{chapterNum}/play-aiPlaylist ???")
+    suspend fun getPlaylist(@Path("isbn") isbn: String): PlaylistResponse
 }
 
 
