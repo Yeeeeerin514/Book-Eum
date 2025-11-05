@@ -27,27 +27,67 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
+import java.io.File
 
 
-class EbookViewerActivity : ComponentActivity() {
+/*class EbookViewerActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //선택한 책을 띄우기 위해
+        // Intent에서 책 정보 받기
+        val bookTitle = intent.getStringExtra("BOOK_TITLE") ?: "책 제목"
+        val bookAuthor = intent.getStringExtra("BOOK_AUTHOR") ?: "저자"
+        val bookFilePath = intent.getStringExtra("BOOK_FILE_PATH") ?: ""
+
         setContent {
             MaterialTheme {
-                EbookViewerScreen()
+                EbookViewerScreen(
+                    bookTitle = bookTitle,
+                    bookAuthor = bookAuthor,
+                    bookFilePath = bookFilePath,
+                    onBackClick = { finish() }
+                )
             }
         }
     }
-}
+}*/
 
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EbookViewerScreen() {   //책 정보 건네받기
+fun EbookViewerScreen(
+    bookTitle: String,
+    bookAuthor: String,
+    bookIsbn : String,
+    bookFilePath: String,
+    onBackClick: () -> Unit,
+    //곡 연결을 이전에 해서 받을까, 아님 여기서 곡 연결을 할까?(백엔드에 곡 요청) 여기서 해야되는거아님??계속 업데이트 되니까
+    //근데 그럼 isbn도 받아야겠네,,->받앗다.
+) {   //책 정보 건네받기
     var showMusicPlayer by remember { mutableStateOf(false) }
     var isPlaying by remember { mutableStateOf(true) }
+    var bookContent by remember { mutableStateOf("책 내용을 불러오는 중...") }
+    val darkGreen = AppColors.DeepGreen
 
-    val darkGreen = Color(0xFF2D4A3E)
+
+    // 책 내용 로드
+    LaunchedEffect(bookFilePath) {
+        if (bookFilePath.isNotEmpty()) {
+            // TODO: EPUB 파일 파싱 (nl.siegmann.epublib 라이브러리 사용 권장)
+            // 임시로 파일 존재 여부만 확인
+            val file = File(bookFilePath)
+            bookContent = if (file.exists()) {
+                "EPUB 파일이 로드되었습니다.\n파일 경로: $bookFilePath\n\n" +
+                        "실제 EPUB 파싱을 위해서는 EPUB 라이브러리를 추가해야 합니다."
+            } else {
+                "파일을 찾을 수 없습니다."
+            }
+        }
+    }
+
+    //음악플리 백에 요청하고 가져오기
+    //플리 중 첫번째 곡 재생하기
 
     Box(
         modifier = Modifier
@@ -61,17 +101,27 @@ fun EbookViewerScreen() {   //책 정보 건네받기
             // 상단 헤더
             TopAppBar(
                 title = {
-                    Text(
-                        text = "책 제목",
-                        color = AppColors.Black,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                    Column(
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = bookTitle,
+                            color = AppColors.Black,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                        Text(
+                            text = bookAuthor,
+                            color = AppColors.Black.copy(alpha = 0.6f),
+                            fontSize = 12.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 },
                 navigationIcon = {
-                    IconButton(onClick = { /* 뒤로 가기 */ }) {
+                    IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Back",
@@ -106,7 +156,7 @@ fun EbookViewerScreen() {   //책 정보 건네받기
                         )
                     }
             ) {
-                EbookContent()
+                EbookContent(bookContent)
             }
         }
 
@@ -127,7 +177,7 @@ fun EbookViewerScreen() {   //책 정보 건네받기
 }
 
 @Composable
-fun EbookContent() {
+fun EbookContent(content: String) {
     val scrollState = rememberScrollState()
 
     Column(
@@ -137,7 +187,7 @@ fun EbookContent() {
             .padding(horizontal = 24.dp, vertical = 32.dp)
     ) {
         Text(
-            text = "책 내용 암암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암 어떠고저쩌고 가나다라마바사 내용 암암암암암",
+            text = content,
             fontSize = 16.sp,
             lineHeight = 28.sp,
             color = AppColors.Black,
@@ -246,7 +296,9 @@ fun MusicPlayerPanel(
 @Preview
 @Composable
 fun EbookViewerScreenPreview() {
-    EbookViewerScreen()
+    var bookContent by remember { mutableStateOf("책 내용을 불러오는 중...") }
+
+    //EbookViewerScreen(bookContent, "as", "as", onBackClick = {})
     MusicPlayerPanel(
         isPlaying = true,
         onPlayPauseClick = { },
