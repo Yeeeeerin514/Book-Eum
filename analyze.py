@@ -9,8 +9,8 @@ def analyze_text(text: str) -> dict:
     EPUB 텍스트를 받아서 LLM으로 음악 분석 결과(JSON) 생성
     """
     prompt = f"""
-    Analyze the [KOREAN_TEXT] and output a single JSON object.
-    All JSON values must be in English.
+    Analyze the following text (Korean or English) and output a single JSON object.
+    Detect the language automatically, but all JSON values must be written in English.
 
     JSON Structure:
     {{
@@ -22,8 +22,8 @@ def analyze_text(text: str) -> dict:
       "keywords": ["3-5 descriptive music keywords"]
     }}
 
-    [KOREAN_TEXT]
-    {text[:5000]}
+    [TEXT]
+    {text}
     """
 
     response = client.chat.completions.create(
