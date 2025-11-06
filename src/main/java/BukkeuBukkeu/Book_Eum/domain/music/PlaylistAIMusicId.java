@@ -1,6 +1,5 @@
-package BukkeuBukkeu.Book_Eum.domain;
+package BukkeuBukkeu.Book_Eum.domain.music;
 
-import jakarta.persistence.Embeddable;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -14,10 +13,8 @@ import java.io.Serializable;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode
-@Embeddable
 public class PlaylistAIMusicId implements Serializable {
 
     private Long playlistId; // Playlist 테이블의 PK
-
     private Long aiMusicId; // AIMusic 테이블의 PK
 }

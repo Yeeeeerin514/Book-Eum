@@ -1,4 +1,4 @@
-package BukkeuBukkeu.Book_Eum.domain;
+package BukkeuBukkeu.Book_Eum.domain.book;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -26,17 +26,11 @@ public class Book {
     @Column(length = 500)
     private String plot;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500, name = "epub_file_url")
     private String epubFileUrl;
 
-    @Column
-    private String genres;
-
-    @Column(nullable = false)
+    @Column(nullable = false, name = "is_analyzed")
     private Boolean isAnalyzed;
-
-    @Column
-    private Long analysisTriggeredBy; // 모두 관리자가 트리거 할텐데, 이 필드가 존재하는 이유가 뭐임?
 
     @Builder
     public Book(String isbn,
@@ -44,26 +38,17 @@ public class Book {
                 String author,
                 String plot,
                 String epubFileUrl,
-                String genres,
-                boolean isAnalyzed,
-                Long analysisTriggeredBy) {
+                boolean isAnalyzed) {
         this.isbn = isbn;
         this.title = title;
         this.author = author;
         this.plot = plot;
         this.epubFileUrl = epubFileUrl;
-        this.genres = genres;
         this.isAnalyzed = isAnalyzed;
-        this.analysisTriggeredBy = analysisTriggeredBy;
     }
 
     // 분석 결과 업데이트
     public void markAsAnalyzed(boolean analyzed){
         this.isAnalyzed = analyzed;
-    }
-
-    // 도서 장르 키워드 업데이트
-    public void updateGenres(String genres){
-        this.genres = genres;
     }
 }
