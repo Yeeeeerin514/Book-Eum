@@ -1,4 +1,4 @@
-package com.example.book_m_front.network
+package com.example.book_m_front.network.ServerRequestAndResponse
 
 data class BookUploadResponse(
     val success: Boolean,

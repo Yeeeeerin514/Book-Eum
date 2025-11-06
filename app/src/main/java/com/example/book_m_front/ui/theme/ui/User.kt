@@ -41,7 +41,14 @@ import android.content.Intent
 import android.provider.OpenableColumns
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
-import com.example.book_m_front.network.BookUploadResponse
+import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
+import com.example.book_m_front.network.ServerRequestAndResponse.downloadBookFromServer
+import com.example.book_m_front.network.ServerRequestAndResponse.getFileName
+import com.example.book_m_front.network.ServerRequestAndResponse.uploadBookToServer
+import com.example.book_m_front.ui.theme.ui.book.BookItem
+import com.example.book_m_front.ui.theme.ui.book.BookRow
+import com.example.book_m_front.ui.theme.ui.playlist.PlaylistItem
+import com.example.book_m_front.ui.theme.ui.playlist.PlaylistRow
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -199,15 +206,16 @@ fun UserProfileScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // 내가 추가한 책 (버튼 포함)
+            // 내가 추가한 책
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 SectionTitle("내가 추가한 책")
+                //나의 책 추가 버튼
                 Button(
-                    onClick = { showAddBookDialog = true },
+                    onClick = { showAddBookDialog = true }, //얘를 true로 만듦으로 -> AddBookDialog를 부르는 로직을 실행
                     colors = ButtonDefaults.buttonColors(
                         containerColor = darkGreen.copy(alpha = 0.8f)
                     ),
@@ -222,8 +230,8 @@ fun UserProfileScreen(
                 }
             }
             Spacer(modifier = Modifier.height(12.dp))
-            // 책이 없을 때 안내 메시지 표시
-            if (myBooks.isEmpty()) {
+            // 아직 추가한 책이 하나도 없을 때 보여줄 텍스트
+            if (myBooks.isEmpty()) {    //'내가 추가한 책 목록'이 비어있음.
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -237,20 +245,21 @@ fun UserProfileScreen(
                         textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
                 }
-            } else {
+            } else {    //'내가 추가한 책 목록'에 책이 존재할 때 -> 그 책 목록 보여줌
                 BookRow(
                     books = myBooks,
                     darkGreen = darkGreen,
-                    onBookClick = {book->
+                    onBookClick = {book->   //책을 클릭 시 시행할 것(책 다운로드해서 -> 이북뷰어로 화면전환)
                         // 책 클릭 시 다운로드 및 화면 전환
                         isDownloading = true
                         coroutineScope.launch {
                             try {
+                                //서버에서 책 다운로드
                                 val bookFile = downloadBookFromServer(
                                     context = context,
                                     isbn = book.isbn
                                 )
-
+                                //서버에 책이 존재한다면
                                 if (bookFile != null) {
                                     // EbookViewer로 이동 : Navigation
                                     onNavigateToEbookViewer(
@@ -265,7 +274,7 @@ fun UserProfileScreen(
                                         bookAuthor = book.author,
                                         bookFilePath = bookFile.absolutePath
                                     )*/
-                                } else {
+                                } else {    //서버에 책이 존재하지 않으면
                                     Toast.makeText(
                                         context,
                                         "책을 불러올 수 없습니다",
@@ -297,32 +306,14 @@ fun UserProfileScreen(
         }
     }
 
-    // 다운로드 중 로딩 표시
+    // 다운로드 중에 보여줄 로딩 화면
     if (isDownloading) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Card(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White)
-            ) {
-                Column(
-                    modifier = Modifier.padding(32.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    CircularProgressIndicator(color = darkGreen)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("책을 불러오는 중...", fontSize = 16.sp)
-                }
-            }
-        }
+        IsDownloadingScreen()
     }
 
-    // 책 추가 다이얼로그!!!!!
+    // showAddBookDialog가 true가 되면 AddBookDialog를 보여줌.
     if (showAddBookDialog) {
+        //'확인'을 누르면 책을 추가하는 로직을 실행함.
         AddBookDialog(
             onDismiss = { showAddBookDialog = false },
             onConfirm = { bookTitle, author, isbn, plot, fileUri ->
@@ -330,6 +321,7 @@ fun UserProfileScreen(
                 isUploading = true
                 coroutineScope.launch {
                     try {
+                        //책을 서버에 업로드
                         val result = uploadBookToServer(
                             context = context,
                             title = bookTitle,
@@ -338,14 +330,14 @@ fun UserProfileScreen(
                             plot = plot,
                             fileUri = fileUri
                         )
-
-                        if (result.success) {
-                            val newBook = BookItem(
+                        //책을 서버에 올리는 것에 성공했다면
+                        if (result.success) {   //result는 BookUploadResponse 데이터 클래스의 객체임.
+                            val newBook = BookItem( //새로 등록한 책을 '내가 추가한 책 목록'에 넣기 <- 근데 이거 나중엔 DB에서 불러오는 방식으로 하던가..아님 이 기능 자체가 사라질수도?
                                 title = bookTitle,
                                 author = author,
                                 isbn = isbn
                             )
-                            myBooks = myBooks + newBook  // 기존 목록에 새 책 추가
+                            myBooks = myBooks + newBook  // 기존 목록에 새 책 추가 <- 근데 서버에 업로드하는 로직만으로도 일단 충분하긴 한 것 같고, 나중엔 정보를 서버에서 가져와서 보여주는 방식으로 진행될듯.
 
                             Toast.makeText(
                                 context,
@@ -377,6 +369,29 @@ fun UserProfileScreen(
     }
 }
 
+@Composable
+fun IsDownloadingScreen(){
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = 0.5f)),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White)
+        ) {
+            Column(
+                modifier = Modifier.padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(color = AppColors.DeepGreen)
+                Spacer(modifier = Modifier.height(16.dp))
+                Text("책을 불러오는 중...", fontSize = 16.sp)
+            }
+        }
+    }
+}
 @Composable
 fun UserProfileSection(darkGreen: Color) {
     Row(
@@ -433,118 +448,8 @@ fun SectionTitle(title: String) {
     )
 }
 
-@Composable
-fun BookRow(books: List<BookItem>, darkGreen: Color, onBookClick: (BookItem) -> Unit) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(books) { book ->
-            BookCard(book, darkGreen, onClick = { onBookClick(book)})
-        }
-    }
-}
 
-@Composable
-fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
-            ,onClick: () -> Unit) {
-    Column(
-        modifier = modifier
-            .width(120.dp)
-            .clickable(onClick = onClick)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.8f)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.LightGray)
-        ) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-            ) {
-                Badge(darkGreen, "읽는중")
-                Spacer(modifier = Modifier.height(4.dp))
-                Badge(Color.Gray, "완독")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = book.title,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = book.author,
-            fontSize = 11.sp,
-            color = Color.Gray
-        )
-    }
-}
 
-@Composable
-fun PlaylistRow(playlists: List<PlaylistItem>, darkGreen: Color) {
-    LazyRow(
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        items(playlists) { playlist ->
-            PlaylistCard(playlist, darkGreen)
-        }
-    }
-}
-
-@Composable
-fun PlaylistCard(playlist: PlaylistItem, darkGreen: Color) {
-    Column(
-        modifier = Modifier.width(120.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(1f)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.LightGray)
-        ) {
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-            ) {
-                Badge(darkGreen, "읽는중")
-                Spacer(modifier = Modifier.height(4.dp))
-                Badge(Color.Gray, "완독")
-            }
-        }
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = playlist.title,
-            fontSize = 13.sp,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = playlist.creator,
-            fontSize = 11.sp,
-            color = Color.Gray
-        )
-    }
-}
-
-//읽는중,완독
-@Composable
-fun Badge(backgroundColor: Color, text: String) {
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(10.dp)
-    ) {
-        Text(
-            text = text,
-            fontSize = 10.sp,
-            color = Color.White,
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-        )
-    }
-}
 
 //'나의 책 추가'누르면 뜨는 화면
 @Composable
@@ -568,7 +473,7 @@ fun AddBookDialog(
         selectedFileUri = uri
     }
 
-
+    //UI
     AlertDialog(
         onDismissRequest = { if (!isUploading) onDismiss() },
         title = {
@@ -640,7 +545,7 @@ fun AddBookDialog(
                     )
                 }
 
-                if (isUploading) {
+                if (isUploading) {  //책 업로드 중에 보여줄 화면
                     Spacer(modifier = Modifier.height(12.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -664,7 +569,7 @@ fun AddBookDialog(
                     if (bookTitle.isNotBlank() && author.isNotBlank()
                         &&isbn.isNotBlank() && plot.isNotBlank()
                         && selectedFileUri != null) {
-                        onConfirm(bookTitle, author, isbn, plot, selectedFileUri!!)
+                        onConfirm(bookTitle, author, isbn, plot, selectedFileUri!!) //<-위에 본 코드에서 정의한 함수임. (왜 걔만 위에잇는거지?)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -688,125 +593,11 @@ fun AddBookDialog(
     )
 }
 
-// 데이터 클래스
-data class BookItem(
-    val title: String,
-    val author: String,
-    val isbn : String
-)
-
-data class PlaylistItem(
-    val title: String,
-    val creator: String
-)
-//data class
-
-// 4. 파일 업로드 함수
-suspend fun uploadBookToServer(
-    context: Context,
-    title: String,
-    author: String,
-    isbn: String,
-    plot: String,
-    fileUri: Uri
-): BookUploadResponse {
-    return withContext(Dispatchers.IO) {
-        try {
-            // URI에서 파일 읽기
-            val inputStream = context.contentResolver.openInputStream(fileUri)
-                ?: throw IOException("파일을 열 수 없습니다")
-
-            val fileName = getFileName(context, fileUri) ?: "book.epub"
-            val fileBytes = inputStream.readBytes()
-            inputStream.close()
-
-            // RequestBody 생성
-            val requestFile = fileBytes.toRequestBody(
-                "application/epub+zip".toMediaTypeOrNull()
-            )
-
-            val filePart = MultipartBody.Part.createFormData(
-                "file",
-                fileName,
-                requestFile
-            )
-
-            val titleBody = title.toRequestBody("text/plain".toMediaTypeOrNull())
-            val authorBody = author.toRequestBody("text/plain".toMediaTypeOrNull())
-            val isbnBody = isbn.toRequestBody("text/plain".toMediaTypeOrNull())
-            val plotBody = plot.toRequestBody("text/plain".toMediaTypeOrNull())
-
-            // API 호출!!!!!!!!!!!!!!
-            val response = Api.retrofitService.uploadBook(
-                title = titleBody,
-                author = authorBody,
-                isbn = isbnBody,
-                plot = plotBody,
-                file = filePart
-            )
-
-            if (response.isSuccessful) {
-                response.body() ?: BookUploadResponse(false, "응답이 비어있습니다")
-            } else {
-                BookUploadResponse(false, "서버 오류: ${response.code()}")
-            }
-        } catch (e: Exception) {
-            BookUploadResponse(false, "업로드 실패: ${e.message}")
-        }
-    }
-}
-
-// 5. 파일명 추출 헬퍼 함수
-fun getFileName(context: Context, uri: Uri): String? {
-    var fileName: String? = null
-    context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-        if (cursor.moveToFirst()) {
-            val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-            if (nameIndex != -1) {
-                fileName = cursor.getString(nameIndex)
-            }
-        }
-    }
-    return fileName
-}
 
 
-// 3. 책 다운로드 함수
-suspend fun downloadBookFromServer(
-    context: Context,
-    isbn: String
-): File? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val response = Api.retrofitService.downloadBook(isbn)
 
-            if (response.isSuccessful && response.body() != null) {
-                // 앱 내부 저장소에 파일 저장
-                val booksDir = File(context.filesDir, "books")
-                if (!booksDir.exists()) {
-                    booksDir.mkdirs()
-                }
 
-                val bookFile = File(booksDir, "$isbn.epub")
 
-                response.body()?.let { responseBody ->
-                    FileOutputStream(bookFile).use { output ->
-                        responseBody.byteStream().use { input ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-
-                bookFile
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-}
 
 // 4. EbookViewer 화면 전환 함수 (UserProfileActivity.kt에 추가)
 /*fun openEbookViewer(
@@ -826,6 +617,7 @@ suspend fun downloadBookFromServer(
 @Preview
 @Composable
 fun UserProfilePreview() {
-    UserProfileScreen()
+    IsDownloadingScreen()
+    //UserProfileScreen()
 }
 

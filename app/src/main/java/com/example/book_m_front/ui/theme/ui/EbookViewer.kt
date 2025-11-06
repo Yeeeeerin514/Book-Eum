@@ -27,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.book_m_front.network.Api
+import com.example.book_m_front.network.ServerRequestAndResponse.dto.MusicTrack
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
 import kotlinx.coroutines.launch
 import java.io.File
@@ -81,9 +82,9 @@ fun EbookViewerScreen(
     val currentTrack = playlist.getOrNull(currentTrackIndex)
 
     // 책 내용 로드
-    LaunchedEffect(bookFilePath) {
+    LaunchedEffect(bookFilePath) {  //아마 사용자 로컬에 저장된 책 파일 불러오는 거엿던듯
         if (bookFilePath.isNotEmpty()) {
-            // TODO: EPUB 파일 파싱 (nl.siegmann.epublib 라이브러리 사용 권장)
+            // TODO: EPUB 파일 파싱 (nl.siegmann.epublib 라이브러리 사용 권장) 해서 글 띄우기. 여기에서 bookContent 변수에 글 싹 다 넣으면 됨!!!(는듯)
             // 임시로 파일 존재 여부만 확인
             val file = File(bookFilePath)
             bookContent = if (file.exists()) {
@@ -101,7 +102,7 @@ fun EbookViewerScreen(
             isLoadingMusic = true
             musicError = null
             try {
-                playlist = fetchPlaylistFromBackend(bookIsbn)
+                playlist = fetchPlaylistFromBackend(bookIsbn)   //이 책의 플리 가져오고
                 if (playlist.isNotEmpty()) {
                     // 첫 번째 곡 자동 재생
                     currentTrackIndex = 0
@@ -115,9 +116,8 @@ fun EbookViewerScreen(
         }
     }
 
-    //음악플리 백에 요청하고 가져오기
-    //플리 중 첫번째 곡 재생하기
 
+    //이북 뷰어 UI
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -141,7 +141,7 @@ fun EbookViewerScreen(
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center
                         )
-                        Text(
+                        Text(   //굳이 작가까진. 나중에 삭제하자.
                             text = bookAuthor,
                             color = AppColors.Black.copy(alpha = 0.6f),
                             fontSize = 12.sp,
@@ -180,7 +180,7 @@ fun EbookViewerScreen(
                     .pointerInput(Unit) {
                         detectTapGestures(
                             onTap = {
-                                //추가
+                                //터치하면, 플리 탭이 나오도록, 또 터치하면 다시 내려가고.
                                 if (playlist.isNotEmpty()) {
                                     showMusicPlayer = !showMusicPlayer
                                 }
@@ -192,7 +192,7 @@ fun EbookViewerScreen(
             }
         }
 
-        // 로딩 인디케이터
+        // 음악 로딩 중일 때 UI
         if (isLoadingMusic) {
             Box(
                 modifier = Modifier
@@ -215,7 +215,7 @@ fun EbookViewerScreen(
             }
         }
 
-        // 슬라이드 업 음악 플레이어
+        // 슬라이드 업 되는 음악 플레이어
         AnimatedVisibility(
             visible = showMusicPlayer && playlist.isNotEmpty(),
             enter = slideInVertically(initialOffsetY = { it }),
@@ -244,8 +244,9 @@ fun EbookViewerScreen(
     }
 }
 
+//책 내용 보여줌
 @Composable
-fun EbookContent(content: String) {
+fun EbookContent(content: String) { //이거 지금 위 아래 스크롤인 것 같은데? 일단 이게 쉽긴 하겠다..일단 두자..나중에 수정하자..
     val scrollState = rememberScrollState()
 
     Column(
@@ -263,6 +264,7 @@ fun EbookContent(content: String) {
         )
     }
 }
+
 
 @Composable
 fun MusicPlayerPanel(
@@ -328,7 +330,7 @@ fun MusicPlayerPanel(
                         modifier = Modifier.weight(1f)
                     ) {
                         Text(
-                            text = track?.title ?: "-",
+                            text = track.title,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -336,7 +338,7 @@ fun MusicPlayerPanel(
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = "${track?.artist} | ${track?.album}",
+                            text = "${track.artist} | ${track.album}",
                             fontSize = 13.sp,
                             color = Color.White.copy(alpha = 0.8f),
                             maxLines = 1
@@ -408,27 +410,15 @@ fun MusicPlayerPanel(
 
 
 
-// 음악 데이터 클래스
-data class MusicTrack(
-    val id: String,
-    val title: String,
-    val artist: String,
-    val album: String,
-    val albumArtUrl: String? = null,
-    val audioUrl: String
-)
 
-// API 응답 데이터 클래스
-data class PlaylistResponse(
-    val isbn: String,
-    val playlist: List<MusicTrack>  //r근데 아직 플리까진 안 하기로 해서, 아마 지금은 안쓸듯?
-)
+
+
 
 // 백엔드 API 호출 함수
 suspend fun fetchPlaylistFromBackend(isbn: String): List<MusicTrack> {
     // TODO: 실제 API 호출 구현 (Retrofit 또는 Ktor 사용)
-    val response = Api.retrofitService.getPlaylist(isbn)
-    //return response.playlist
+    val response = Api.retrofitService.getPlaylist(isbn)    //isbn보내서 가져오기
+    //return response.playlist      //응답의 playlist만 반환함.
 
     // 임시 더미 데이터
     return listOf(
