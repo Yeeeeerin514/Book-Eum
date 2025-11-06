@@ -25,7 +25,7 @@ public class BookResponse {
                 .author(book.getAuthor())
                 .genres(book.getGenres())
                 .epubFileUrl(book.getEpubFileUrl())
-                .isAnalyzed(book.isAnalyzed())
+                .isAnalyzed(book.getIsAnalyzed())
                 .build();
     }
 }
