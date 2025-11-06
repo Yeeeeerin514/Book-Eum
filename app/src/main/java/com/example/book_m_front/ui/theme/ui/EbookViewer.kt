@@ -57,6 +57,7 @@ import java.io.File
 }*/
 
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EbookViewerScreen(
@@ -81,12 +82,15 @@ fun EbookViewerScreen(
     val scope = rememberCoroutineScope()
     val currentTrack = playlist.getOrNull(currentTrackIndex)
 
+    //val context = LocalContext.current
+
+
     // 책 내용 로드
     LaunchedEffect(bookFilePath) {  //아마 사용자 로컬에 저장된 책 파일 불러오는 거엿던듯
         if (bookFilePath.isNotEmpty()) {
             // TODO: EPUB 파일 파싱 (nl.siegmann.epublib 라이브러리 사용 권장) 해서 글 띄우기. 여기에서 bookContent 변수에 글 싹 다 넣으면 됨!!!(는듯)
             // 임시로 파일 존재 여부만 확인
-            val file = File(bookFilePath)
+            val file = File(/*bookFilePath*/"content://com.android.providers.downloads.documents/document/msf%3A1000000033")
             bookContent = if (file.exists()) {
                 "EPUB 파일이 로드되었습니다.\n파일 경로: $bookFilePath\n\n" +
                         "실제 EPUB 파싱을 위해서는 EPUB 라이브러리를 추가해야 합니다."
@@ -115,6 +119,8 @@ fun EbookViewerScreen(
             }
         }
     }
+
+
 
 
     //이북 뷰어 UI
@@ -438,6 +444,7 @@ suspend fun fetchPlaylistFromBackend(isbn: String): List<MusicTrack> {
         )
     )
 }
+
 
 
 @Preview

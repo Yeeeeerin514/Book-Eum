@@ -5,10 +5,19 @@ package com.example.book_m_front.network.ServerRequestAndResponse.dto
 
 //Book 가져올 때 씀.
 //TODO : 이거 백엔드에서 주는 것 맞춰서 수정 필요함.
-data class BookDownloadUrlResponse(
-    val success: Boolean,
-    val downloadUrl: String?, // 서버가 보내주는 클라우드 다운로드 URL
-    val message: String?
+data class BookItem(
+    //val success: Boolean, //서버가 줄 수 있ㄴ는 잘 실행됏는지에 대한 값. 근데 뭐 없어도..
+    //val message: String?,
+    val isbn: String,
+    val title: String,
+    val author: String,
+    val epubFileUrl: String, // 서버가 보내주는 클라우드 다운로드 URL
+    val isAnalyzed: Boolean,
+
+    // @Transient: JSON 파싱 과정에서 이 필드를 완전히 무시함
+    // 기본값은 반드시 필요함
+    //@Transient val isDownloaded: Boolean = false
+
 )
 
 //Playlist

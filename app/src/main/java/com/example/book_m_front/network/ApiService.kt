@@ -1,7 +1,7 @@
 package com.example.book_m_front.network
 
 import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
-import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookDownloadUrlResponse
+import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookItem
 import com.example.book_m_front.network.ServerRequestAndResponse.dto.PlaylistResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -52,7 +52,7 @@ interface ApiService{
     @GET("/books/{isbn}/content")   //실제 엔드포인트로 변경 필요
     suspend fun downloadBook(
         @Path("isbn") isbn: String
-    ): BookDownloadUrlResponse  //Response<ResponseBody> 이거에서 바꿈.
+    ): BookItem  //Response<ResponseBody> 이거에서 바꿈.
 
     //음악 플리 가져오기
     @GET("/books/{isbn}/{chapterNum}/play-aiPlaylist ???")

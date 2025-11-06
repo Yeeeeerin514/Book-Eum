@@ -30,10 +30,16 @@ class MainActivity : ComponentActivity() {
         setContent {
             Book_M_FrontTheme {
                 //MusicPlayerScreen()
-                UserProfileScreen()
-                //EbookViewerScreen()
+                //UserProfileScreen()
+                /*EbookViewerScreen(
+                    bookTitle = "책 제목",
+                    bookAuthor = "김나린",
+                    bookIsbn  = "1234456",
+                    bookFilePath = "1234",
+                    onBackClick = {}
+                )*/
 
-                val navController = rememberNavController()
+                /*val navController = rememberNavController()
 
                 NavHost(
                     navController = navController,
@@ -60,10 +66,10 @@ class MainActivity : ComponentActivity() {
                             navArgument("bookFilePath") { type = NavType.StringType }
                         )
                     ) { backStackEntry ->
-                        val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
-                        val bookAuthor = backStackEntry.arguments?.getString("bookAuthor") ?: ""
-                        val bookIsbn = backStackEntry.arguments?.getString("bookIsbn") ?: ""
-                        val bookFilePath = backStackEntry.arguments?.getString("bookFilePath") ?: ""
+                        val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: "-"
+                        val bookAuthor = backStackEntry.arguments?.getString("bookAuthor") ?: "-"
+                        val bookIsbn = backStackEntry.arguments?.getString("bookIsbn") ?: "-"
+                        val bookFilePath = backStackEntry.arguments?.getString("bookFilePath") ?: "content://com.android.providers.downloads.documents/document/msf%3A1000000033"
 
                         EbookViewerScreen(
                             bookTitle = bookTitle,
@@ -75,7 +81,21 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                }
+                }*/
+
+                // 2. 테스트하고 싶은 EbookViewerScreen을 직접 호출합니다.
+                EbookViewerScreen(
+                    bookTitle = "테스트용 책 제목",
+                    bookAuthor = "테스트용 저자",
+                    bookIsbn  = "9781234567890",
+                    // 이 경로가 가장 중요합니다! 실제 존재하는 파일 경로를 넣어야 합니다.
+                    bookFilePath = "content://com.android.providers.downloads.documents/document/msf%3A1000000033",
+                    onBackClick = {
+                        // 테스트 중에는 뒤로가기 버튼이 특별한 동작을 할 필요가 없습니다.
+                        // 예를 들어, 간단한 로그를 남기거나 토스트 메시지를 띄울 수 있습니다.
+                        println("뒤로가기 버튼 클릭됨")
+                    }
+                )
                 /*setContent {
                     MaterialTheme {
                         MusicPlayerScreen()
@@ -88,6 +108,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+/*
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
     Text(
@@ -102,4 +123,4 @@ fun GreetingPreview() {
     Book_M_FrontTheme {
         Greeting("Android")
     }
-}
+}*/

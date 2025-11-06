@@ -23,18 +23,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookItem
 import com.example.book_m_front.ui.theme.ui.BookCard
 import com.example.book_m_front.ui.theme.ui.badge.Badge
 
 //데이터 패키지로 따로 관리하는 게 좋을 수도
-data class BookItem(//줄거리도 필요하지 않나?
+/*data class BookItem(//줄거리도 필요하지 않나?
     val title: String,
     val author: String,
-    val isbn : String
-)
+    val isbn : String,
+
+)*/
 @Composable
 fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
-             ,onClick: () -> Unit) {
+             , onClick: () -> Unit) {
     Column(
         modifier = modifier
             .width(120.dp)

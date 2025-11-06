@@ -73,4 +73,12 @@ dependencies {
 
     // Navigation Compose
     implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // EPUB 파싱을 위한 라이브러리
+        implementation("nl.siegmann.epublib:epublib-core:4.0") {
+            exclude(group = "org.slf4j")
+            exclude(group = "xmlpull")
+        }
+
+
 }

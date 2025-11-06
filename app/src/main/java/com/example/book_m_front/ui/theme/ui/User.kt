@@ -34,30 +34,24 @@ import com.example.book_m_front.R
 import androidx.lifecycle.viewModelScope        //백과의 소통을 위해 추가
 import com.example.book_m_front.network.Api
 import kotlinx.coroutines.launch
+import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookItem
+
 
 // 7. 필요한 import 추가
-import android.content.Context
-import android.content.Intent
-import android.provider.OpenableColumns
+
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
 import com.example.book_m_front.network.ServerRequestAndResponse.downloadBookFromServer
 import com.example.book_m_front.network.ServerRequestAndResponse.getFileName
 import com.example.book_m_front.network.ServerRequestAndResponse.uploadBookToServer
+/*
 import com.example.book_m_front.ui.theme.ui.book.BookItem
+*/
 import com.example.book_m_front.ui.theme.ui.book.BookRow
 import com.example.book_m_front.ui.theme.ui.playlist.PlaylistItem
 import com.example.book_m_front.ui.theme.ui.playlist.PlaylistRow
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
-import retrofit2.Response
-import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
+
 
 
 
@@ -332,13 +326,13 @@ fun UserProfileScreen(
                         )
                         //책을 서버에 올리는 것에 성공했다면
                         if (result.success) {   //result는 BookUploadResponse 데이터 클래스의 객체임.
-                            val newBook = BookItem( //새로 등록한 책을 '내가 추가한 책 목록'에 넣기 <- 근데 이거 나중엔 DB에서 불러오는 방식으로 하던가..아님 이 기능 자체가 사라질수도?
+                            /*val newBook = BookItem( //새로 등록한 책을 '내가 추가한 책 목록'에 넣기 <- 근데 이거 나중엔 DB에서 불러오는 방식으로 하던가..아님 이 기능 자체가 사라질수도?
                                 title = bookTitle,
                                 author = author,
                                 isbn = isbn
                             )
                             myBooks = myBooks + newBook  // 기존 목록에 새 책 추가 <- 근데 서버에 업로드하는 로직만으로도 일단 충분하긴 한 것 같고, 나중엔 정보를 서버에서 가져와서 보여주는 방식으로 진행될듯.
-
+*/                          //내가 추가한 책 목록은 없음!! 그냥 추가만 되고 끝.
                             Toast.makeText(
                                 context,
                                 "책이 성공적으로 추가되었습니다",
@@ -617,7 +611,7 @@ fun AddBookDialog(
 @Preview
 @Composable
 fun UserProfilePreview() {
-    IsDownloadingScreen()
-    //UserProfileScreen()
+    //IsDownloadingScreen()
+    UserProfileScreen()
 }
 

@@ -95,16 +95,16 @@ suspend fun downloadBookFromServer(
     return withContext(Dispatchers.IO) {
         try {
             //1단계 : 서버에 isbn을 넘겨서 책 다운로드 링크 받기
-            val urlResponse = Api.retrofitService.downloadBook(isbn)
+            val bookResponse = Api.retrofitService.downloadBook(isbn)
 
             //실패 시
-            if (!urlResponse.success || urlResponse.downloadUrl == null) {
+            if (bookResponse.epubFileUrl == null) {
                 // 서버가 URL을 주지 않았거나, 실패 응답을 보냄
                 println("서버로부터 유효한 다운로드 URL을 받지 못했습니다.")
                 return@withContext null //리턴하니까..끝나는.
             }
 
-            val downloadUrl = urlResponse.downloadUrl // "https://.../book.epub?token=..."
+            val downloadUrl = bookResponse.epubFileUrl // "https://.../book.epub?token=..."
 
             // --- 2단계: 받은 URL로 실제 파일 데이터 다운로드하기 ---
             // OkHttpClient를 사용하여 순수 GET 요청을 보냄
