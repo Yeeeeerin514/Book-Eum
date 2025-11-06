@@ -1,26 +1,26 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Optional
+from typing import List, Optional
 import os
+import time
+import asyncio
+import requests
 
-from utils import extract_chapters_from_epub, save_text_locally
+from utils import extract_chapters_from_epub
 from analyze import analyze_text
 from music_prompt_generator import generate_music_prompt
-from musicgen_service import generate_music_local
+from musicgen_service import generate_music_local, load_model
 
-app = FastAPI(title="AI Music E-Book Server")
+app = FastAPI(title="AI Music E-Book Server (Async Pipeline)")
 
-# --- 도서 내용 분석 요청 ---
+# --- 데이터 모델 ---
 
 class BookAnalysisRequest(BaseModel):
     isbn: str
-    epubFileUrl: str
+    fileUrl: str
 
 class ChapterAnalysisResult(BaseModel):
-    """챕터별 분석 결과 (DB 저장용)"""
     chapter_number: int
-    chapter_title: str
-    text_length: int
     main_mood: str
     emotions: List[str]
     genres: List[str]
@@ -28,232 +28,212 @@ class ChapterAnalysisResult(BaseModel):
     tempo: List[str]
     keywords: List[str]
 
-class BookAnalysisResponse(BaseModel):
-    """자바 서버로 반환할 전체 분석 결과"""
-    isbn: str
-    isAnalyzed: bool
-    chapters: List[ChapterAnalysisResult]
-
-class MusicGenerationRequest(BaseModel):
-    """음악 생성 요청 (이미 분석된 책 기반)"""
-    isbn: str
-    title: str
-    chapters: List[ChapterAnalysisResult]  # DB에서 가져온 분석 결과
-    duration_sec: Optional[float] = 5.0
-
 class ChapterMusicResult(BaseModel):
-    """챕터별 음악 생성 결과"""
     chapter_number: int
-    music_prompt: str
     music_path: str
+    main_mood: str
+    selected_genres: List[str]
+    selected_instruments: List[str]
+    selected_tempo: List[str]
+    selected_keywords: List[str]
 
-class MusicGenerationResponse(BaseModel):
-    """음악 생성 결과"""
-    isbn: str
-    title: str
-    total_musics: int
-    musics: List[ChapterMusicResult]
+# --- 자바 서버 URL 설정 ---
+JAVA_ANALYSIS_CALLBACK_URL = "http://localhost:8080/api/python/analysis/callback"
+JAVA_MUSIC_CALLBACK_URL = "http://localhost:8080/api/python/music/callback"
 
-@app.post("/books/{isbn}/analyze", response_model=BookAnalysisResponse)
-async def analyze_book(isbn: str, request: BookAnalysisRequest):
+# --- 음악 생성 세마포어 (1개씩만 실행되게 제한) ---
+music_generation_lock = asyncio.Semaphore(1)
+
+# --- 음악 생성 모델 로드 ---
+@app.on_event("startup")
+async def startup_event():
     """
-    [자바 → 파이썬] 도서 내용 분석 요청
-    
-    - EPUB 파일로부터 챕터별 텍스트 추출
-    - 각 챕터를 OpenAI로 분석 (main_mood, emotions, genres, instruments, tempo, keywords)
-    - 분석 결과를 자바 서버로 반환 → DB 저장
-    
-    Args:
-        isbn: 도서 ISBN (URL 파라미터)
-        request: 도서 정보 (title, author, isbn, plot, fileUri)
-    
-    Returns:
-        BookAnalysisResponse: 챕터별 분석 결과
+    서버 시작 시 한 번만 MusicGen 모델을 메모리에 로드
     """
+    print("🚀 Preloading MusicGen model on startup...")
+    load_model()
+    print("✅ MusicGen model loaded and cached successfully!")
+
+# --- 도서 내용 분석 API (비동기 파이프라인 방식) ---
+@app.post("/books/analyze")
+async def analyze_book(request: BookAnalysisRequest):
     try:
-        epub_path = request.epubFileUrl
-        # 1. EPUB 파일 존재 확인
+        epub_path = request.fileUrl
+        isbn = request.isbn
+
         if not os.path.exists(epub_path):
-            raise HTTPException(
-                status_code=404, 
-                detail=f"EPUB file not found: {epub_path}"
-            )
-        
-        print(f"📚 Starting analysis for book: ISBN={isbn}")
-        
-        # 2. EPUB에서 챕터 추출
+            raise HTTPException(status_code=404, detail=f"EPUB file not found: {epub_path}")
+
+        print(f"📚 Starting async pipeline analysis for: ISBN={isbn}")
+
         chapters = extract_chapters_from_epub(epub_path)
         if not chapters:
-            raise HTTPException(
-                status_code=400,
-                detail="No chapters found in EPUB file"
-            )
+            raise HTTPException(status_code=400, detail="No chapters found in EPUB file")
+
         print(f"📖 Extracted {len(chapters)} chapters")
-        
-        # 3. 각 챕터별로 텍스트 분석
-        results: List[ChapterAnalysisResult] = []
-        
+
+        # 챕터별 순차 분석, 음악 생성은 병렬로 실행
         for ch in chapters:
-            print(f"🧠 Analyzing Chapter {ch['chapter_number']}: {ch['title']}")
-            
-            # 텍스트 파일 읽기
-            with open(ch["text_path"], "r", encoding="utf-8") as f:
-                text = f.read()
-            
-            # OpenAI로 분석
-            analysis = analyze_text(text)
-            
-            # DB 저장용 형식으로 변환
-            chapter_result = ChapterAnalysisResult(
-                chapter_number=ch["chapter_number"],
-                chapter_title=ch["title"],
-                text_length=ch["text_length"],
-                main_mood=analysis.get("main_mood", ""),
-                emotions=analysis.get("emotions", []),
-                genres=analysis.get("genres", []),
-                instruments=analysis.get("instruments", []),
-                tempo=analysis.get("tempo", []),
-                keywords=analysis.get("keywords", [])
-            )
-            
-            results.append(chapter_result)
-            print(f"✅ Chapter {ch['chapter_number']} analyzed: mood={result.main_mood}")
-        
-        # 4. 자바 서버로 반환 (DB 저장용)
-        response = BookAnalysisResponse(
-            isbn=isbn,
-            isAnalyzed=True,
-            chapters=results,
-        )
-        
-        print(f"🎉 Analysis complete: {len(results)} chapters")
-        
-        return response
-        
+            chapter_num = ch["chapter_number"]
+            print(f"\n{'='*60}")
+            print(f"🧠 [CH{chapter_num}] Starting analysis...")
+
+            try:
+                with open(ch["text_path"], "r", encoding="utf-8") as f:
+                    text = f.read()
+
+                # 텍스트 분석
+                analysis = analyze_text(text)
+                analysis_result = ChapterAnalysisResult(
+                    chapter_number=chapter_num,
+                    main_mood=analysis.get("main_mood", ""),
+                    emotions=analysis.get("emotions", []),
+                    genres=analysis.get("genres", []),
+                    instruments=analysis.get("instruments", []),
+                    tempo=analysis.get("tempo", []),
+                    keywords=analysis.get("keywords", [])
+                )
+
+                print(f"✅ [CH{chapter_num}] Analysis completed: mood={analysis_result.main_mood}")
+
+                # 자바 서버로 분석 결과 전송
+                send_analysis_to_java(isbn, analysis_result)
+
+                # 분석 끝나자마자 음악 생성 비동기 실행
+                asyncio.create_task(
+                    generate_music_for_chapter_async(
+                        isbn=isbn,
+                        chapter_num=chapter_num,
+                        analysis_result=analysis_result
+                    )
+                )
+
+                print(f"🎵 [CH{chapter_num}] Music generation started asynchronously")
+
+            except Exception as e:
+                print(f"❌ [CH{chapter_num}] Error: {str(e)}")
+                continue
+
+        print(f"\n{'='*60}")
+        print(f"🎉 All {len(chapters)} chapters analyzed; music generation running in background.")
+
+        return {
+            "status": "success",
+            "message": "Book analysis completed, music generation running in background",
+            "isbn": isbn,
+            "total_chapters": len(chapters)
+        }
+
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error analyzing book: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error analyzing book: {str(e)}"
-        )
+        print(f"❌ Pipeline error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pipeline error: {str(e)}")
 
-# --- 감정 기반 AI 음악 생성 요청
-@app.post("/books/{isbn}/generate-music", response_model=MusicGenerationResponse)
-async def generate_music_for_book(isbn: str, request: MusicGenerationRequest):
-    """
-    [자바 → 파이썬] 이미 분석된 책에 대해 새로운 음악 생성
-    
-    - DB에서 가져온 분석 결과로 새로운 프롬프트 구성 (랜덤 샘플링)
-    - 각 챕터별 음악 생성
-    - 생성된 음악 파일 경로를 자바 서버로 반환 → DB 업데이트
-    
-    Args:
-        isbn: 도서 ISBN
-        request: 음악 생성 요청 (DB에서 가져온 분석 결과 포함)
-    
-    Returns:
-        MusicGenerationResponse: 챕터별 음악 생성 결과
-    """
+# --- 자바 서버로 분석 결과 전송 ---
+def send_analysis_to_java(isbn: str, analysis_result: ChapterAnalysisResult):
     try:
-        print(f"🎵 Starting music generation for: {request.title} (ISBN: {isbn})")
-        
-        music_results = []
-        
-        for chapter in request.chapters:
-            print(f"🎼 Generating music for Chapter {chapter.chapter_number}")
-            
-            # 1. 분석 결과를 dict 형식으로 변환
-            analysis_dict = {
-                "main_mood": chapter.main_mood,
-                "emotions": chapter.emotions,
-                "genres": chapter.genres,
-                "instruments": chapter.instruments,
-                "tempo": chapter.tempo,
-                "keywords": chapter.keywords
-            }
-            
-            # 2. 새로운 프롬프트 생성 (랜덤 샘플링으로 매번 다름)
-            music_prompt = generate_music_prompt(analysis_dict)
-            
-            # 3. 음악 생성
-            # 파일명: {isbn}_chapter_{chapter_number}_{timestamp}.wav
-            import time
-            timestamp = int(time.time())
-            filename = f"{isbn}_chapter_{chapter.chapter_number:02d}_{timestamp}.wav"
-            
-            music_path = generate_music_local(
-                music_prompt, 
-                filename,
-                duration_sec=request.duration_sec
-            )
-            
-            music_results.append(ChapterMusicResult(
-                chapter_number=chapter.chapter_number,
-                music_prompt=music_prompt,
-                music_path=music_path
-            ))
-            
-            print(f"✅ Music generated for Chapter {chapter.chapter_number}: {filename}")
-        
-        response = MusicGenerationResponse(
-            isbn=isbn,
-            title=request.title,
-            total_musics=len(music_results),
-            musics=music_results
-        )
-        
-        print(f"🎉 Music generation complete: {len(music_results)} tracks")
-        
-        return response
-        
-    except Exception as e:
-        print(f"❌ Error generating music: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating music: {str(e)}"
-        )
-
-@app.post("/books/analyze-and-generate-music")
-async def analyze_and_generate_music(request: BookAnalysisRequest):
-    """
-    [통합 엔드포인트] 분석 + 음악 생성 한 번에 처리
-    (발표 시연용 - 빠른 테스트를 위해)
-    """
-    try:
-        # 1. 도서 분석
-        analysis_response = await analyze_book(request.isbn, request)
-        
-        # 2. 음악 생성 요청 구성
-        music_request = MusicGenerationRequest(
-            isbn=request.isbn,
-            title=request.title,
-            chapters=analysis_response.chapters
-        )
-        
-        # 3. 음악 생성
-        music_response = await generate_music_for_book(request.isbn, music_request)
-        
-        # 4. 통합 결과 반환
-        return {
-            "analysis": analysis_response,
-            "music": music_response
+        payload = {
+            "isbn": isbn,
+            "chapter_number": analysis_result.chapter_number,
+            "main_mood": analysis_result.main_mood,
+            "emotions": analysis_result.emotions,
+            "genres": analysis_result.genres,
+            "instruments": analysis_result.instruments,
+            "tempo": analysis_result.tempo,
+            "keywords": analysis_result.keywords
         }
-        
+
+        response = requests.post(JAVA_ANALYSIS_CALLBACK_URL, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            print(f"📤 [CH{analysis_result.chapter_number}] Analysis result sent to Java successfully")
+        else:
+            print(f"⚠️ [CH{analysis_result.chapter_number}] Java callback failed: {response.status_code}")
+            print(f"   Response: {response.text}")
+
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error in full pipeline: {str(e)}"
-        )
+        print(f"❌ [CH{analysis_result.chapter_number}] Failed to send to Java: {str(e)}")
+
+# --- 비동기 음악 생성 ---
+async def generate_music_for_chapter_async(isbn: str, chapter_num: int, analysis_result: ChapterAnalysisResult):
+    """
+    챕터 분석 완료 후 비동기적으로 음악 생성 및 자바 콜백
+    단, 음악 생성은 동시에 하나씩만 실행되도록 제한
+    """
+    async with music_generation_lock:
+        try:
+            print(f"\n{'='*60}")
+            print(f"🎼 [CH{chapter_num}] Async music generation started...")
+
+            # 프롬프트 생성
+            prompt_result = generate_music_prompt({
+                "main_mood": analysis_result.main_mood,
+                "emotions": analysis_result.emotions,
+                "genres": analysis_result.genres,
+                "instruments": analysis_result.instruments,
+                "tempo": analysis_result.tempo,
+                "keywords": analysis_result.keywords,
+            })
+
+            prompt = prompt_result["prompt"]
+            print(f"📝 [CH{chapter_num}] Prompt: {prompt}")
+
+            # 오래 걸리는 음악 생성은 스레드 풀로 실행 (논블로킹)
+            loop = asyncio.get_event_loop()
+            timestamp = int(time.time())
+            filename = f"{isbn}_ch{chapter_num:02d}_{timestamp}.wav"
+
+            music_path = await loop.run_in_executor(
+                None, lambda: generate_music_local(prompt, filename, duration_sec=5.0)
+            )
+
+            print(f"✅ [CH{chapter_num}] Music generated: {music_path}")
+
+            # 결과 구성 및 자바로 전송
+            music_result = ChapterMusicResult(
+                chapter_number=chapter_num,
+                music_path=music_path,
+                main_mood=prompt_result["main_mood"],
+                selected_genres=prompt_result["selected_genres"],
+                selected_instruments=prompt_result["selected_instruments"],
+                selected_tempo=prompt_result["selected_tempo"],
+                selected_keywords=prompt_result["selected_keywords"]
+            )
+
+            send_music_to_java(isbn, music_result)
+            print(f"📤 [CH{chapter_num}] Music result sent to Java successfully")
+
+        except Exception as e:
+            print(f"❌ [CH{chapter_num}] Music generation error: {str(e)}")
+
+# --- 자바 서버로 음악 결과 전송 ---
+def send_music_to_java(isbn: str, music_result: ChapterMusicResult):
+    try:
+        payload = {
+            "isbn": isbn,
+            "chapter_number": music_result.chapter_number,
+            "music_path": music_result.music_path,
+            "main_mood": music_result.main_mood,
+            "selected_genres": music_result.selected_genres,
+            "selected_instruments": music_result.selected_instruments,
+            "selected_tempo": music_result.selected_tempo,
+            "selected_keywords": music_result.selected_keywords
+        }
+
+        response = requests.post(JAVA_MUSIC_CALLBACK_URL, json=payload, timeout=10)
+
+        if response.status_code == 200:
+            print(f"📤 [CH{music_result.chapter_number}] Music result sent to Java successfully")
+        else:
+            print(f"⚠️ [CH{music_result.chapter_number}] Java music callback failed: {response.status_code}")
+
+    except Exception as e:
+        print(f"❌ [CH{music_result.chapter_number}] Failed to send music to Java: {str(e)}")
 
 @app.get("/health")
 async def health_check():
-    """서버 상태 확인"""
-    return {
-        "status": "healthy",
-        "service": "AI Music E-Book Analysis Server"
-    }
+    return {"status": "healthy", "mode": "async-pipeline"}
 
 if __name__ == "__main__":
     import uvicorn
