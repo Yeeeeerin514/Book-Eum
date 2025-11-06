@@ -1,4 +1,4 @@
-package BukkeuBukkeu.Book_Eum.service;
+package BukkeuBukkeu.Book_Eum.service.storage;
 
 import org.springframework.web.multipart.MultipartFile;
 
@@ -14,8 +14,8 @@ public interface FileStorageService {
 
     /**
      * AI 생성 음악을 클라우드에 업로드하고, 접근 가능한 URL을 반환
-     * @param aiMusicFile 업로드할 AI 생성 음악 파일
+     * @param data 업로드할 AI 생성 음악 파일
      * @return 클라우드에 업로드된 음악 파일의 공개 URL
      */
-    String aiMusic(MultipartFile aiMusicFile);
+    String uploadMusicFile(byte[] data, String objectPath);
 }

@@ -1,4 +1,4 @@
-package BukkeuBukkeu.Book_Eum.dto;
+package BukkeuBukkeu.Book_Eum.dto.user;
 
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;

@@ -33,7 +33,7 @@ public class Book {
     private String genres;
 
     @Column(nullable = false)
-    private boolean isAnalyzed;
+    private Boolean isAnalyzed;
 
     @Column
     private Long analysisTriggeredBy; // 모두 관리자가 트리거 할텐데, 이 필드가 존재하는 이유가 뭐임?
@@ -57,9 +57,9 @@ public class Book {
         this.analysisTriggeredBy = analysisTriggeredBy;
     }
 
-    // 분석 완료 처리
-    public void analysisComplete(){
-        this.isAnalyzed = true;
+    // 분석 결과 업데이트
+    public void markAsAnalyzed(boolean analyzed){
+        this.isAnalyzed = analyzed;
     }
 
     // 도서 장르 키워드 업데이트

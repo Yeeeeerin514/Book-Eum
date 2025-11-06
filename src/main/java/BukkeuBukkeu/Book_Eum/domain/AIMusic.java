@@ -1,10 +1,7 @@
 package BukkeuBukkeu.Book_Eum.domain;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 // DB의 AIMusic에 대응하는 엔티티
 
@@ -12,6 +9,7 @@ import lombok.NoArgsConstructor;
 @Getter // getter 자동 생성
 @Table(name = "AIMusic") // DB에서 이름이 User인 테이블과 매핑
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 기본 생성자 생성
+@AllArgsConstructor
 public class AIMusic {
 
     @Id // PK 지정
