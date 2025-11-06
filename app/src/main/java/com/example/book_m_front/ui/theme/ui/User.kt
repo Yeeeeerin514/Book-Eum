@@ -57,30 +57,42 @@ import java.io.IOException
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UserProfileScreen(
+    //네비게이션 : user창 -> 이북 뷰어 창
     onNavigateToEbookViewer: (String, String, String, String) -> Unit = { _, _, _, _ -> }
 ) {
-    val darkGreen = AppColors.DeepGreen
+    val darkGreen = AppColors.DeepGreen //나중에 삭제해도 될듯. 다 그냥 바로 App~으로 하고.
     val scrollState = rememberScrollState()
     var showAddBookDialog by remember { mutableStateOf(false) }
 
-    //백엔드 연동을 위해 추가한 코드
+    //사용자 휴대폰에서 데이터 가져오고/저장하기 위한 얘.
     val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
+    //Context : 안드로이드 앱이 실행되고 있는 현재 상태와 환경에 대한 모든 정보에 접근할 수 있는 "만능 리모컨" 또는 "연결 통로"
+    //ㄴ 안드로이드 OS의 기능(파일 읽기/쓰기, Toast 메시지, 리소스 접근 등)
+    //LocalContext.current : 현재 UI가 속한 context를 말함. (보통 현재 Activity래)
+    //얘로 Uri에 해당하는 파일의 실제 데이터를 읽어오는 기능을 수행 -> 이를 백엔드 서버에 저장
+    //서버에서 가져온 책 파일을, 휴대폰에 저장하는 기능을 수행.
+    val coroutineScope = rememberCoroutineScope()   //코루틴. 비동기 실행을 위함.
+
+    //파일 보내기(업로드), 가져오기(다운로드) 상태 변수
     var isUploading by remember { mutableStateOf(false) }
     var isDownloading by remember { mutableStateOf(false) }
 
 
     //내가 추가한 책 목록
     var myBooks by remember { mutableStateOf(listOf<BookItem>()) }
+    //++ 이 후 다른 목록(내가 좋아요 누른 책, 플리..)들도 이렇게 관리 필요함.
 
-    // 앱 시작 시 서버에서 내가 추가한 책 목록 불러오기 (선택사항) => 안할듯??
+    // 앱 시작 시 서버에서 내가 추가한 책 목록 불러오기 (선택사항) => 지금은 안할듯??
     LaunchedEffect(Unit) {
         // TODO: 서버에서 사용자의 책 목록을 불러오는 API 호출
         // myBooks = loadMyBooksFromServer()
     }
+    //LaunchedEffect : 네트워크 요청, 데이터베이스 조회, 애니메이션 실행과 같이 Composable 함수의 일반적인 실행 흐름과 다른 생명주기를 갖는 작업을 처리할 때 사용
+    //간단히 말해, "화면이 처음 나타났을 때 (또는 특정 값이 바뀌었을 때) 딱 한 번만 실행하고 싶은 코드가 있을 때" 사용합니다.
+    //이 key 값이 변경될 때만 코드 블럭을 실행함. 지금 Unit(상수)이 사용되었고, 이 값은 절대 변하지 않기에 처음 딱 한번만 실행됨.
+    //화면이 종료되면, 얘도 자동으로 끝남.
 
-
-    // 샘플 데이터
+    // 샘플 데이터 (나중에 이제 백엔드한테 받을것임)--------
     val likedBooks = listOf(
         BookItem("책 제목", "작은이름 저자", "1234"),
         BookItem("책 제목", "작은이름 저자","1234"),
@@ -107,7 +119,10 @@ fun UserProfileScreen(
         PlaylistItem("플리 제목", "저작권자"),
         PlaylistItem("플리 제목", "저작권자")
     )
+    //-----------
 
+
+    //!화면!
     Scaffold(
         topBar = {
             TopAppBar(

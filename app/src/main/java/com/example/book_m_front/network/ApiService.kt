@@ -1,4 +1,5 @@
 package com.example.book_m_front.network
+
 import com.example.book_m_front.ui.theme.ui.PlaylistResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -15,7 +16,8 @@ import retrofit2.http.Path
 
 
 //연결할 HTTP 추가
-private const val BASE_URL = "https://android-kotlin-fun-mars-server.appspot.com"
+//private const val BASE_URL = "https://10.210.61.15:8080/api"
+private const val BASE_URL = "https://localhost:8080/api"
 
 
 //retrofit 빌더 객체 추가
