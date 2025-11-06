@@ -90,44 +90,38 @@ async def analyze_book(isbn: str, request: BookAnalysisRequest):
             )
         print(f"📖 Extracted {len(chapters)} chapters")
         
-        # 3. 각 챕터별로 텍스트 분석
-        results: List[ChapterAnalysisResult] = []
-        
-        for ch in chapters:
-            print(f"🧠 Analyzing Chapter {ch['chapter_number']}: {ch['title']}")
-            
-            # 텍스트 파일 읽기
-            with open(ch["text_path"], "r", encoding="utf-8") as f:
-                text = f.read()
-            
-            # OpenAI로 분석
-            analysis = analyze_text(text)
-            
-            # DB 저장용 형식으로 변환
-            chapter_result = ChapterAnalysisResult(
-                chapter_number=ch["chapter_number"],
-                chapter_title=ch["title"],
-                text_length=ch["text_length"],
-                main_mood=analysis.get("main_mood", ""),
-                emotions=analysis.get("emotions", []),
-                genres=analysis.get("genres", []),
-                instruments=analysis.get("instruments", []),
-                tempo=analysis.get("tempo", []),
-                keywords=analysis.get("keywords", [])
-            )
-            
-            results.append(chapter_result)
-            print(f"✅ Chapter {ch['chapter_number']} analyzed: mood={result.main_mood}")
-        
-        # 4. 자바 서버로 반환 (DB 저장용)
+        # 3. 첫 번째 챕터만 분석
+        first_chapter = chapters[0]
+        print(f"🧠 Analyzing Chapter {first_chapter['chapter_number']}: {first_chapter['title']}")
+
+        # 텍스트 읽기
+        with open(first_chapter["text_path"], "r", encoding="utf-8") as f:
+            text = f.read()
+
+        # OpenAI 분석
+        analysis = analyze_text(text)
+
+        # 결과 생성
+        result = ChapterAnalysisResult(
+            chapter_number=first_chapter["chapter_number"],
+            chapter_title=first_chapter["title"],
+            text_length=first_chapter["text_length"],
+            main_mood=analysis.get("main_mood", ""),
+            emotions=analysis.get("emotions", []),
+            genres=analysis.get("genres", []),
+            instruments=analysis.get("instruments", []),
+            tempo=analysis.get("tempo", []),
+            keywords=analysis.get("keywords", [])
+        )
+
+        # 응답 생성
         response = BookAnalysisResponse(
             isbn=isbn,
             isAnalyzed=True,
-            chapters=results,
+            chapters=[result],
         )
-        
-        print(f"🎉 Analysis complete: {len(results)} chapters")
-        
+
+        print(f"✅ Single chapter analyzed successfully: mood={result.main_mood}")
         return response
         
     except HTTPException:
