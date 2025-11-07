@@ -50,9 +50,7 @@ async def startup_event():
     """
     서버 시작 시 한 번만 MusicGen 모델을 메모리에 로드
     """
-    print("🚀 Preloading MusicGen model on startup...")
     load_model()
-    print("✅ MusicGen model loaded and cached successfully!")
 
 # --- 도서 내용 분석 API (비동기 파이프라인 방식) ---
 @app.post("/books/analyze")
@@ -94,7 +92,7 @@ async def analyze_book(request: BookAnalysisRequest):
                     keywords=analysis.get("keywords", [])
                 )
 
-                print(f"✅ [CH{chapter_num}] Analysis completed: mood={analysis_result.main_mood}")
+                print(f"✅ [CH{chapter_num}] Analysis completed - Mood: {analysis_result.main_mood}")
 
                 # 자바 서버로 분석 결과 전송
                 send_analysis_to_java(isbn, analysis_result)
@@ -107,15 +105,17 @@ async def analyze_book(request: BookAnalysisRequest):
                         analysis_result=analysis_result
                     )
                 )
-
-                print(f"🎵 [CH{chapter_num}] Music generation started asynchronously")
+                print(f"🎵 [CH{chapter_num}] Music generation task created\n")
+                
+                # 이벤트 루프에 제어권 양보
+                await asyncio.sleep(0)
 
             except Exception as e:
                 print(f"❌ [CH{chapter_num}] Error: {str(e)}")
                 continue
 
         print(f"\n{'='*60}")
-        print(f"🎉 All {len(chapters)} chapters analyzed; music generation running in background.")
+        print(f"🎉 All {len(chapters)} chapters analyzed.")
 
         return {
             "status": "success",
@@ -161,6 +161,9 @@ async def generate_music_for_chapter_async(isbn: str, chapter_num: int, analysis
     챕터 분석 완료 후 비동기적으로 음악 생성 및 자바 콜백
     단, 음악 생성은 동시에 하나씩만 실행되도록 제한
     """
+    # 락 획득 전: 태스크가 대기 중임을 표시
+    print(f"⏱️ [CH{chapter_num}] Music task queued, waiting for generation slot...")
+
     async with music_generation_lock:
         try:
             print(f"\n{'='*60}")
@@ -202,7 +205,6 @@ async def generate_music_for_chapter_async(isbn: str, chapter_num: int, analysis
             )
 
             send_music_to_java(isbn, music_result)
-            print(f"📤 [CH{chapter_num}] Music result sent to Java successfully")
 
         except Exception as e:
             print(f"❌ [CH{chapter_num}] Music generation error: {str(e)}")

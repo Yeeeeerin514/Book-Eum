@@ -23,7 +23,7 @@ def analyze_text(text: str) -> dict:
     }}
 
     [TEXT]
-    {text[:3000]}
+    {text[:2000]}
     """
 
     response = client.chat.completions.create(
