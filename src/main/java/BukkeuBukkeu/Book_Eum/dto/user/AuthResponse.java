@@ -4,7 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
-// 회원가입/로그인 성공 시 서버가 access token을 발급하여 클라이언트에게 전달하는 객체
+// 서버 -> 클라이언트
+// 회원가입/로그인 성공 시 access token을 발급하여 클라이언트에게 전달하는 객체
 
 @Getter
 @Builder
