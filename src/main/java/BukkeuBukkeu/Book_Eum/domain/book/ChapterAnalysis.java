@@ -3,6 +3,7 @@ package BukkeuBukkeu.Book_Eum.domain.book;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.List;
 // LLM 분석 결과 JSON 형식
 
 @Data
+@Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public class ChapterAnalysis {

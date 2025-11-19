@@ -16,7 +16,7 @@ import org.hibernate.annotations.Type;
 public class Chapter {
 
     @Id
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private String isbn; // Book의 PK를 참조하는 FK
 
     @Id

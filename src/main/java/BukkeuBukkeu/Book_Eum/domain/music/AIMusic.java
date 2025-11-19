@@ -1,7 +1,9 @@
 package BukkeuBukkeu.Book_Eum.domain.music;
 
+import io.hypersistence.utils.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Type;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +12,7 @@ import java.util.List;
 
 @Entity // 테이블과 매핑되는 JPA 엔티티
 @Getter // getter 자동 생성
-@Table(name = "AI_Music") // DB에서 이름이 User인 테이블과 매핑
+@Table(name = "AI_Music") // DB에서 이름이 -인 테이블과 매핑
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 기본 생성자 생성
 @AllArgsConstructor
 public class AIMusic {
@@ -23,7 +25,11 @@ public class AIMusic {
     private String title;
 
     @Column(nullable = false, name = "audio_file_url", length = 500)
-    private String audioFileUrl;
+    private String audioFilePath;
+
+    @Type(JsonType.class)
+    @Column(columnDefinition = "json")
+    private AIMusicAnalysis analysis; // LLM 분석 결과 (JSON 형식)
 
     @Column(nullable = false, name = "skip_cnt")
     private int skipCnt;
@@ -32,9 +38,9 @@ public class AIMusic {
     private List<PlaylistAIMusic> playlists = new ArrayList<>();
 
     @Builder
-    public AIMusic(String title, String audioFileUrl, int skipCnt){
+    public AIMusic(String title, String audioFilePath, int skipCnt){
         this.title = title;
-        this.audioFileUrl = audioFileUrl;
+        this.audioFilePath = audioFilePath;
         this.skipCnt = skipCnt;
     }
 

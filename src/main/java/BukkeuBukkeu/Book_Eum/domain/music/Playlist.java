@@ -24,10 +24,10 @@ public class Playlist {
     @Column(nullable = false)
     private String isbn; // FK : 어떤 도서의 플레이리스트인지
 
-    @Column(nullable = false)
+    @Column(nullable = false, name = "creator_type")
     private String creatorType; // 플레이리스트를 만든 주체 (AI or User)
 
-    @Column
+    @Column(name = "user_id")
     private String userId; // User가 만든 경우 어떤 User가 만들었는지 (AI가 만든 경우 어떤 값을 넣을지 논의 필요)
 
     @OneToMany(mappedBy = "playlist") // PlaylistAIMusic과 1:N 관계를 JPA 레벨에서 표현
