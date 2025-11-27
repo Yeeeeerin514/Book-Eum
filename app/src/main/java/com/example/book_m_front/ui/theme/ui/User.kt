@@ -1,17 +1,11 @@
 package com.example.book_m_front.ui.theme.ui
 
 import android.net.Uri
-import android.os.Bundle
-import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,28 +25,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
 import com.example.book_m_front.R
-import androidx.lifecycle.viewModelScope        //백과의 소통을 위해 추가
-import com.example.book_m_front.network.Api
 import kotlinx.coroutines.launch
-import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookItem
+import com.example.book_m_front.network.dto.BookItem
 
 
 // 7. 필요한 import 추가
 
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
-import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
-import com.example.book_m_front.network.ServerRequestAndResponse.downloadBookFromServer
 import com.example.book_m_front.network.ServerRequestAndResponse.getFileName
 import com.example.book_m_front.network.ServerRequestAndResponse.uploadBookToServer
 /*
 import com.example.book_m_front.ui.theme.ui.book.BookItem
 */
 import com.example.book_m_front.ui.theme.ui.book.BookRow
+import com.example.book_m_front.ui.theme.ui.book.handleBookClickToEbookViewer
 import com.example.book_m_front.ui.theme.ui.playlist.PlaylistItem
 import com.example.book_m_front.ui.theme.ui.playlist.PlaylistRow
-
-
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -79,29 +68,29 @@ fun UserProfileScreen(
     var isDownloading by remember { mutableStateOf(false) }
 
 
-    //내가 추가한 책 목록
-    var myBooks by remember { mutableStateOf(listOf<BookItem>()) }
-    //++ 이 후 다른 목록(내가 좋아요 누른 책, 플리..)들도 이렇게 관리 필요함.
+    var likedBooks by remember { mutableStateOf(listOf<BookItem>()) }
+    var likedPlaylists by remember { mutableStateOf(listOf<PlaylistItem>()) }
+    var recommendedPlaylists by remember { mutableStateOf(listOf<PlaylistItem>()) }
 
-    // 앱 시작 시 서버에서 내가 추가한 책 목록 불러오기 (선택사항) => 지금은 안할듯??
+    // 앱 시작 시 서버에서 내가 추가한 책 목록 불러오기
     LaunchedEffect(Unit) {
         // TODO: 서버에서 사용자의 책 목록을 불러오는 API 호출
-        // myBooks = loadMyBooksFromServer()
+        //likedBooks..얘네에 저장
     }
     //LaunchedEffect : 네트워크 요청, 데이터베이스 조회, 애니메이션 실행과 같이 Composable 함수의 일반적인 실행 흐름과 다른 생명주기를 갖는 작업을 처리할 때 사용
     //간단히 말해, "화면이 처음 나타났을 때 (또는 특정 값이 바뀌었을 때) 딱 한 번만 실행하고 싶은 코드가 있을 때" 사용합니다.
     //이 key 값이 변경될 때만 코드 블럭을 실행함. 지금 Unit(상수)이 사용되었고, 이 값은 절대 변하지 않기에 처음 딱 한번만 실행됨.
     //화면이 종료되면, 얘도 자동으로 끝남.
 
-    // 샘플 데이터 (나중에 이제 백엔드한테 받을것임)--------
-    val likedBooks = listOf(
+    // 샘플 데이터
+    /*val examplelikedBooks = listOf(
         BookItem("책 제목", "작은이름 저자", "1234"),
         BookItem("책 제목", "작은이름 저자","1234"),
         BookItem("책 제목", "작은이름 저자","1234"),
         BookItem("책 제목", "작은이름 저자","1234")
-    )
+    )*/
 
-    val likedPlaylists = listOf(
+    val examplelikedPlaylists = listOf(
         PlaylistItem("플리 제목", "저작권자"),
         PlaylistItem("플리 제목", "저작권자"),
         PlaylistItem("플리 제목", "저작권자"),
@@ -115,7 +104,7 @@ fun UserProfileScreen(
         BookItem("책 제목", "작은이름 저자")
     )*/
 
-    val recommendedPlaylists = listOf(
+    val examplerecommendedPlaylists = listOf(
         PlaylistItem("플리 제목", "저작권자"),
         PlaylistItem("플리 제목", "저작권자"),
         PlaylistItem("플리 제목", "저작권자")
@@ -187,9 +176,21 @@ fun UserProfileScreen(
             // 내가 좋아요한 책
             SectionTitle("내가 좋아요한 책")
             Spacer(modifier = Modifier.height(12.dp))
-            BookRow(likedBooks, darkGreen,
-                    onBookClick = { }   //구현 필요
-            )//row로 바꾸기
+            BookRow(
+                books = likedBooks,
+                darkGreen = darkGreen,
+                onBookClick = { book ->
+                    //함수로 호출하고 싶은데
+                    handleBookClickToEbookViewer(
+                        book = book,
+                        context = context,
+                        coroutineScope = coroutineScope,
+                        onStartLoading = { isDownloading = true },
+                        onFinishLoading = { isDownloading = false },
+                        onNavigateToEbookViewer = onNavigateToEbookViewer
+                    )
+                }
+            )
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -197,6 +198,13 @@ fun UserProfileScreen(
             SectionTitle("내가 좋아요한 플레이리스트")
             Spacer(modifier = Modifier.height(12.dp))
             PlaylistRow(likedPlaylists, darkGreen)
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 내가 제작한 플레이리스트
+            SectionTitle("내가 제작한 플레이리스트")
+            Spacer(modifier = Modifier.height(12.dp))
+            PlaylistRow(recommendedPlaylists, darkGreen)
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -223,80 +231,6 @@ fun UserProfileScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(12.dp))
-            // 아직 추가한 책이 하나도 없을 때 보여줄 텍스트
-            if (myBooks.isEmpty()) {    //'내가 추가한 책 목록'이 비어있음.
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(150.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "아직 추가한 책이 없습니다.\n'나의 책 추가' 버튼을 눌러 책을 추가해보세요!",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-                }
-            } else {    //'내가 추가한 책 목록'에 책이 존재할 때 -> 그 책 목록 보여줌
-                BookRow(
-                    books = myBooks,
-                    darkGreen = darkGreen,
-                    onBookClick = {book->   //책을 클릭 시 시행할 것(책 다운로드해서 -> 이북뷰어로 화면전환)
-                        // 책 클릭 시 다운로드 및 화면 전환
-                        isDownloading = true
-                        coroutineScope.launch {
-                            try {
-                                //서버에서 책 다운로드
-                                val bookFile = downloadBookFromServer(
-                                    context = context,
-                                    isbn = book.isbn
-                                )
-                                //서버에 책이 존재한다면
-                                if (bookFile != null) {
-                                    // EbookViewer로 이동 : Navigation
-                                    onNavigateToEbookViewer(
-                                        book.title,
-                                        book.author,
-                                        book.isbn,
-                                        bookFile.absolutePath
-                                    )
-                                    /*openEbookViewer(
-                                        context = context,
-                                        bookTitle = book.title,
-                                        bookAuthor = book.author,
-                                        bookFilePath = bookFile.absolutePath
-                                    )*/
-                                } else {    //서버에 책이 존재하지 않으면
-                                    Toast.makeText(
-                                        context,
-                                        "책을 불러올 수 없습니다",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            } catch (e: Exception) {
-                                Toast.makeText(
-                                    context,
-                                    "오류 발생: ${e.message}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            } finally {
-                                isDownloading = false
-                            }
-                        }
-                    }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // 내가 제작한 플레이리스트
-            SectionTitle("내가 제작한 플레이리스트")
-            Spacer(modifier = Modifier.height(12.dp))
-            PlaylistRow(recommendedPlaylists, darkGreen)
-
-            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 
@@ -326,13 +260,7 @@ fun UserProfileScreen(
                         )
                         //책을 서버에 올리는 것에 성공했다면
                         if (result.success) {   //result는 BookUploadResponse 데이터 클래스의 객체임.
-                            /*val newBook = BookItem( //새로 등록한 책을 '내가 추가한 책 목록'에 넣기 <- 근데 이거 나중엔 DB에서 불러오는 방식으로 하던가..아님 이 기능 자체가 사라질수도?
-                                title = bookTitle,
-                                author = author,
-                                isbn = isbn
-                            )
-                            myBooks = myBooks + newBook  // 기존 목록에 새 책 추가 <- 근데 서버에 업로드하는 로직만으로도 일단 충분하긴 한 것 같고, 나중엔 정보를 서버에서 가져와서 보여주는 방식으로 진행될듯.
-*/                          //내가 추가한 책 목록은 없음!! 그냥 추가만 되고 끝.
+                            //내가 추가한 책 목록은 없음!! 그냥 추가만 되고 끝.
                             Toast.makeText(
                                 context,
                                 "책이 성공적으로 추가되었습니다",
@@ -386,6 +314,8 @@ fun IsDownloadingScreen(){
         }
     }
 }
+
+//TODO : 유저 정보 서버에서 받아오기
 @Composable
 fun UserProfileSection(darkGreen: Color) {
     Row(
@@ -458,7 +388,6 @@ fun AddBookDialog(
     var author by remember { mutableStateOf("") }
     var isbn by remember { mutableStateOf("") }
     var plot by remember { mutableStateOf("") }
-
     var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
 
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -517,12 +446,14 @@ fun AddBookDialog(
                 )
                 Spacer(modifier = Modifier.height(12.dp))
                 Button(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = AppColors.DeepGreen
                     ),
                     onClick = {
-                    // 파일 유형 필터 설정 (예: 모든 파일 or 특정 MIME)
+                    // 파일 유형 필터 설정 : e-pub만 받도록 함.
                     filePickerLauncher.launch(arrayOf("application/epub+zip"))
                     },
                     enabled = !isUploading
@@ -535,7 +466,7 @@ fun AddBookDialog(
                         text = "선택된 파일: ${getFileName(LocalContext.current, it)}",
                         fontSize = 12.sp,
                         color = Color.Gray,
-                        modifier = Modifier.padding(top = 8.dp)
+                        modifier = Modifier.padding(top = 10.dp)
                     )
                 }
 
@@ -591,22 +522,6 @@ fun AddBookDialog(
 
 
 
-
-
-// 4. EbookViewer 화면 전환 함수 (UserProfileActivity.kt에 추가)
-/*fun openEbookViewer(
-    context: Context,
-    bookTitle: String,
-    bookAuthor: String,
-    bookFilePath: String
-) {
-    val intent = Intent(context, EbookViewerActivity::class.java).apply {
-        putExtra("BOOK_TITLE", bookTitle)
-        putExtra("BOOK_AUTHOR", bookAuthor)
-        putExtra("BOOK_FILE_PATH", bookFilePath)
-    }
-    context.startActivity(intent)
-}*/
 
 @Preview
 @Composable

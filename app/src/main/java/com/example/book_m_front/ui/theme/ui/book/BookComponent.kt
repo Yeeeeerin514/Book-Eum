@@ -1,5 +1,7 @@
 package com.example.book_m_front.ui.theme.ui.book
 
+import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -23,17 +25,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookItem
-import com.example.book_m_front.ui.theme.ui.BookCard
+import com.example.book_m_front.network.ServerRequestAndResponse.downloadBookFromServer
+import com.example.book_m_front.network.dto.BookItem
 import com.example.book_m_front.ui.theme.ui.badge.Badge
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
-//데이터 패키지로 따로 관리하는 게 좋을 수도
-/*data class BookItem(//줄거리도 필요하지 않나?
-    val title: String,
-    val author: String,
-    val isbn : String,
 
-)*/
 @Composable
 fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
              , onClick: () -> Unit) {
@@ -42,6 +40,7 @@ fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
             .width(120.dp)
             .clickable(onClick = onClick)
     ) {
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -81,6 +80,52 @@ fun BookRow(books: List<BookItem>, darkGreen: Color, onBookClick: (BookItem) -> 
     ) {
         items(books) { book ->
             BookCard(book, darkGreen, onClick = { onBookClick(book) })
+        }
+    }
+}
+
+fun handleBookClickToEbookViewer(
+    book: BookItem,
+    context: Context,
+    coroutineScope: CoroutineScope,
+    onStartLoading: () -> Unit,
+    onFinishLoading: () -> Unit,
+    onNavigateToEbookViewer: (title: String, author: String, isbn: String, filePath: String) -> Unit
+
+){
+    //책을 클릭 시 시행할 것(책 다운로드해서 -> 이북뷰어로 화면전환)
+    onStartLoading()    //-> isDownloading이 true가 됨.
+    coroutineScope.launch {
+        try {
+            //서버에서 책 다운로드
+            val bookFile = downloadBookFromServer(
+                context = context,
+                isbn = book.isbn
+            )
+            //서버에 책이 존재한다면
+            if (bookFile != null) {
+                // EbookViewer로 이동 : Navigation
+                onNavigateToEbookViewer(
+                    book.title,
+                    book.author,
+                    book.isbn,
+                    bookFile.absolutePath
+                )
+            } else {    //서버에 책이 존재하지 않으면
+                Toast.makeText(
+                    context,
+                    "책을 불러올 수 없습니다",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        } catch (e: Exception) {
+            Toast.makeText(
+                context,
+                "오류 발생: ${e.message}",
+                Toast.LENGTH_SHORT
+            ).show()
+        } finally {
+            onFinishLoading()
         }
     }
 }

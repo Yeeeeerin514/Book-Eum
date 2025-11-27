@@ -1,14 +1,20 @@
 package com.example.book_m_front.network
 
 import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
-import com.example.book_m_front.network.ServerRequestAndResponse.dto.BookItem
-import com.example.book_m_front.network.ServerRequestAndResponse.dto.PlaylistResponse
+import com.example.book_m_front.network.dto.AuthResponse
+import com.example.book_m_front.network.dto.BookItem
+import com.example.book_m_front.network.dto.Playlist
+import com.example.book_m_front.network.dto.SearchBookByTitleRequest
+import com.example.book_m_front.network.dto.SearchBookByTitleResponse
+import com.example.book_m_front.network.dto.UserJoinRequest
+import com.example.book_m_front.network.dto.UserLoginRequest
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.converter.scalars.ScalarsConverterFactory
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Multipart
 import retrofit2.http.POST
@@ -35,18 +41,41 @@ interface ApiService{
     @GET("photos")  //GET 요청임을 알림. 괄호안의 내용은 엔드포인트인데, 이것도 나중에 수정이 필요함.
     suspend fun getTitle() : String //웹 서비스에서 응답 문자열을 가져올거임. 이 함수를 호출하면, retrofit 객체가 base_url에 위에서 작성한 엔드포인트를 추가함.
 
+    //로그인
+    @POST("/users/login")
+    suspend fun login(@Body request: UserLoginRequest): Response<AuthResponse>
+    //회원가입
+    @POST("/users/signup")
+    suspend fun signup(@Body request: UserJoinRequest): Response<AuthResponse>
 
+    //TODO : 유저 서랍 진입
+    //TODO : 내 정보 화면 진입
+    //TODO : 내 정보 화면 수정후 확인버튼
 
-    //책 등록
+    //TODO:새로운 책 등록
     @Multipart
     @POST("/books/register")  // 실제 엔드포인트로 변경 필요 -> ok
-    suspend fun uploadBook(
+    suspend fun uploadBook( //얘는 파일도 주는 거라서, dto를 사용하지 못함.
         @Part("isbn") isbn: RequestBody,
         @Part("title") title: RequestBody,
         @Part("author") author: RequestBody,
-        @Part("plot") plot: RequestBody, //줄거리는 아직 안 받네?? 받아달라 해야것다
+        @Part("plot") plot: RequestBody,
         @Part file: MultipartBody.Part  //key(이름표)가 epubFile임.
-    ): Response<BookUploadResponse>
+    ): Response<BookUploadResponse>//TODO : 이거 response 수정하기
+
+    //TODO : 메인 화면 진입
+
+    //책 검색 화면에서 책 검색함.
+    @GET("/books/search/title")
+    suspend fun searchBookByTitle(@Body request: SearchBookByTitleRequest): Response<SearchBookByTitleResponse>
+
+    //TODO : 책 정보화면 진입
+    //TODO : 책 정보화면에서 책 저장 버튼 클릭
+    //TODO : 이북뷰어 화면 진입
+    //TODO : 플리 화면 진입
+    //TODO : 플리 화면에서 플리 저장 버튼 클릭
+
+    //------------------------이 아래는 예전 거. 새로 다 적으면 사용 안 할듯?
 
     //책 가져오기 (isbn으로)
     @GET("/books/{isbn}/content")   //실제 엔드포인트로 변경 필요
@@ -55,8 +84,20 @@ interface ApiService{
     ): BookItem  //Response<ResponseBody> 이거에서 바꿈.
 
     //음악 플리 가져오기
+    //TODO: 예린언니 백엔드에서 주는 것들 정리 끝나면 그에 맞춰 수정
     @GET("/books/{isbn}/{chapterNum}/play-aiPlaylist ???")
-    suspend fun getPlaylist(@Path("isbn") isbn: String): PlaylistResponse
+    suspend fun getPlaylist(@Path("isbn") isbn: String): Playlist
+
+    //TODO : 유저 정보 서버에서 받아오기
+
+
+    @POST("/books/{isbn}/content")
+    suspend fun uploadContent(
+        @Part("id") id: String,
+        @Part("password") password: String,
+        @Part("name") name : String,
+        @Part("spotifyAccount") spotifyAccount : String
+    ): Response<BookUploadResponse>
 }
 
 

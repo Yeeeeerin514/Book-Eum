@@ -1,4 +1,4 @@
-package com.example.book_m_front.ui.theme.ui
+package com.example.book_m_front.ui.theme.ui.login
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
