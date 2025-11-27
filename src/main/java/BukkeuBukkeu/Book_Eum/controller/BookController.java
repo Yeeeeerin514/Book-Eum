@@ -1,11 +1,13 @@
 package BukkeuBukkeu.Book_Eum.controller;
 
-import BukkeuBukkeu.Book_Eum.domain.Book;
+import BukkeuBukkeu.Book_Eum.domain.book.Book;
 import BukkeuBukkeu.Book_Eum.dto.book.*;
 import BukkeuBukkeu.Book_Eum.service.book.BookAnalysisService;
 import BukkeuBukkeu.Book_Eum.service.book.BookRegisterService;
 import BukkeuBukkeu.Book_Eum.service.book.BookService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +26,18 @@ public class BookController {
     private final BookRegisterService bookRegisterService;
 
     /**
-     * 도서 등록 (multipart/form-data)
+     * 제목으로 도서 검색
+     */
+    @GetMapping("/search")
+    public BookSearchResponse searchByTitle(@RequestParam String query,
+                                            @RequestParam(defaultValue = "0") int page,
+                                            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return bookService.searchByTitle(query, pageable);
+    }
+
+    /**
+     * 도서 등록
      * 관리자나 유저가 epub 파일을 업로드해서 도서를 등록할 때 사용
      */
     @PostMapping(value = "/register", consumes = {"multipart/form-data"})
@@ -39,36 +52,6 @@ public class BookController {
         BookResponse response = BookResponse.fromEntity(newBook);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    /**
-     * 제목으로 도서 검색
-     */
-    @GetMapping("/search/title")
-    public ResponseEntity<List<BookSearchResponse>> searchBooksByTitle(
-            @RequestParam("keyword") String keyword) {
-
-        List<BookSearchResponse> results = bookService.searchBooksByTitle(keyword)
-                .stream()
-                .map(BookSearchResponse::fromEntity)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(results);
-    }
-
-    /**
-     * 장르로 도서 검색
-     */
-    @GetMapping("/search/genre")
-    public ResponseEntity<List<BookSearchResponse>> searchBooksByGenre(
-            @RequestParam("genre") String genre) {
-
-        List<BookSearchResponse> results = bookService.searchBooksByGenre(genre)
-                .stream()
-                .map(BookSearchResponse::fromEntity)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(results);
     }
 
     /**

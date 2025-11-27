@@ -1,8 +1,11 @@
 package BukkeuBukkeu.Book_Eum.service.book;
 
-import BukkeuBukkeu.Book_Eum.domain.Book;
+import BukkeuBukkeu.Book_Eum.domain.book.Book;
+import BukkeuBukkeu.Book_Eum.dto.book.BookSearchResponse;
 import BukkeuBukkeu.Book_Eum.repository.BookRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,34 +21,16 @@ public class BookService {
 
     // isbn으로 도서 찾기
     @Transactional(readOnly = true)
-    public Book getBookByIsbn(String isbn) {
+    public Book getByIsbn(String isbn) {
         return bookRepository.findByIsbn(isbn)
                 .orElseThrow(() -> new IllegalArgumentException("해당 ISBN의 도서를 찾을 수 없습니다 : " + isbn));
     }
 
     // 제목으로 도서 찾기
-    @Transactional(readOnly = true)
-    public List<Book> searchBooksByTitle(String title) {
-        return bookRepository.findByTitleContainingIgnoreCase(title);
-    }
-
-    // 장르로 도서 찾기 (하나의 장르)
-    @Transactional(readOnly = true)
-    public List<Book> searchBooksByGenre(String genre) {
-        return bookRepository.findByGenresContainingIgnoreCase(genre);
-    }
-
-    // 장르로 도서 찾기 (여러 장르 AND 조건)
-    @Transactional(readOnly = true)
-    public List<Book> searchBooksByAllGenres(List<String> genres) {
-        return genres.stream()
-                .map(bookRepository::findByGenresContainingIgnoreCase)
-                .reduce((list1, list2) ->
-                        list1.stream()
-                                .filter(list2::contains)
-                                .toList()
-                )
-                .orElse(List.of());
+    @Transactional(readOnly = true) // DB에 데이터를 쓰지 않으므로 dirty checking 비활성화
+    public BookSearchResponse searchByTitle(String query, Pageable pageable) {
+        Page<Book> pageResult = bookRepository.findByTitleContainingIgnoreCase(query, pageable);
+        return BookSearchResponse.fromPage(pageResult);
     }
 
     // DB에서 해당 ISBN 도서 삭제

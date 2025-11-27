@@ -1,6 +1,6 @@
 package BukkeuBukkeu.Book_Eum.repository;
 
-import BukkeuBukkeu.Book_Eum.domain.Book;
+import BukkeuBukkeu.Book_Eum.domain.book.Book;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,23 +14,15 @@ public interface BookRepository extends JpaRepository<Book, String> { // <엔티
     // isbn으로 도서 찾기
     Optional<Book> findByIsbn(String isbn);
 
-    // 여러 isbn으로 한 번에 조회
+    // 여러 isbn으로 한 번에 도서 조회 <- 있어야 하는 메소드인지 논의 필요 (도서 추천이라면 필요할 수도)
     List<Book> findByIsbnIn(Collection<String> isbns);
 
     // isbn으로 도서 존재 여부 확인
     boolean existsByIsbn(String isbn);
 
     // 제목으로 도서 찾기 (대소문자 무시)
-    List<Book> findByTitleContainingIgnoreCase(String title);
-    Page<Book> findByTitleContainingIgnoreCase(String title, Pageable pageable);
-
-    // 저자로 도서 찾기 (대소문자 무시)
-    List<Book> findByAuthorContainingIgnoreCase(String author);
-    Page<Book> findByAuthorContainingIgnoreCase(String author, Pageable pageable);
-
-    // 장르로 도서 찾기
-    List<Book> findByGenresContainingIgnoreCase(String genre);
-    Page<Book> findByGenresContainingIgnoreCase(String genre, Pageable pageable);
+    List<Book> findByTitleContainingIgnoreCase(String title); // 시스템 내 사용
+    Page<Book> findByTitleContainingIgnoreCase(String title, Pageable pageable); // 유저에게 보여주는 용도 (페이지 분할)
 
     // 도서 삭제
     void deleteByIsbn(String isbn);
