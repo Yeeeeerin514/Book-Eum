@@ -30,7 +30,7 @@ import androidx.compose.ui.tooling.preview.Preview
 @Composable
 fun LoginScreen(
     onBackClick: () -> Unit,
-    onLoginSuccess: (String, String) -> Unit
+    onLoginSuccess: () -> Unit
 ) {
     var userId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -79,7 +79,7 @@ fun LoginScreen(
             }
 
             Text(
-                text = "복 - 음",
+                text = "북 - 음",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF1B4332)
@@ -163,7 +163,11 @@ fun LoginScreen(
                     if (userId.isEmpty() || password.isEmpty()) {
                         errorMessage = "아이디와 비밀번호를 입력해주세요"
                     } else {
-                        onLoginSuccess(userId, password)
+                        //onLoginSuccess(userId, password)
+                        if(checkMember(userId, password))    //TODO : 백엔드와의 통신을 여기서 하기.
+                            onLoginSuccess()
+                        else
+                            errorMessage = "아이디와 비밀번호를 확인해주세요"
                     }
                 },
                 modifier = Modifier.fillMaxWidth().height(56.dp),

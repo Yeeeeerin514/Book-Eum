@@ -36,7 +36,16 @@ import java.io.InputStreamReader
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import androidx.compose.ui.tooling.preview.Preview
+import com.example.book_m_front.network.Api
 
+
+/*
+TODO
+ isbn을 navigation을 통해 넘겨 받음.
+ 이걸 받아서, 이걸로 백엔드와 통신해서, 세진이가 파싱한 책 파일을 받아옴.
+ 그걸 띄움!
+ 그리고 현재 위치를 계속 추적해서, 챕터가 넘어가면 백엔드에게 알려줌.
+ */
 
 // 데이터 클래스
 data class EpubContent(
@@ -862,8 +871,7 @@ fun MusicPlayerPanel(
 
 suspend fun fetchPlaylistFromBackend(isbn: String): List<Music> {
     // TODO: 실제 API 호출 구현
-    // val response = Api.retrofitService.getPlaylist(isbn)
-    // return response.playlist
+    //return Api.retrofitService.getPlaylist(isbn).playlist
 
     // 임시 더미 데이터
     return listOf(

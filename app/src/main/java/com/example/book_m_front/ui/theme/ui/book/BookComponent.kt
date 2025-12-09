@@ -28,19 +28,22 @@ import androidx.compose.ui.unit.sp
 import com.example.book_m_front.network.ServerRequestAndResponse.downloadBookFromServer
 import com.example.book_m_front.network.dto.BookItem
 import com.example.book_m_front.ui.theme.ui.badge.Badge
+import com.example.book_m_front.ui.theme.ui_resource.AppColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 
 @Composable
-fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
-             , onClick: () -> Unit) {
+fun BookCard(
+    book: BookItem,
+    modifier: Modifier = Modifier,
+    onClick: (BookItem) -> Unit
+) {
     Column(
         modifier = modifier
             .width(120.dp)
-            .clickable(onClick = onClick)
+            .clickable { onClick(book) }
     ) {
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -53,7 +56,7 @@ fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
                     .align(Alignment.BottomStart)
                     .padding(8.dp)
             ) {
-                Badge(darkGreen, "읽는중")
+                Badge(AppColors.DeepGreen, "읽는중")
                 Spacer(modifier = Modifier.height(4.dp))
                 Badge(Color.Gray, "완독")
             }
@@ -74,16 +77,21 @@ fun BookCard(book: BookItem, darkGreen: Color, modifier: Modifier = Modifier
 
 
 @Composable
-fun BookRow(books: List<BookItem>, darkGreen: Color, onBookClick: (BookItem) -> Unit) {
+fun BookRow(books: List<BookItem>, onBookClick: (BookItem) -> Unit) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(books) { book ->
-            BookCard(book, darkGreen, onClick = { onBookClick(book) })
+            BookCard(book, onClick = onBookClick)
         }
     }
 }
 
+
+/**
+ * 책 클릭 시 다운로드 후 E-book 뷰어로 이동하는 헬퍼 함수
+ * User.kt에서 사용
+ */
 fun handleBookClickToEbookViewer(
     book: BookItem,
     context: Context,
@@ -91,27 +99,29 @@ fun handleBookClickToEbookViewer(
     onStartLoading: () -> Unit,
     onFinishLoading: () -> Unit,
     onNavigateToEbookViewer: (title: String, author: String, isbn: String, filePath: String) -> Unit
+) {
+    // 책을 클릭 시 실행할 것 (책 다운로드해서 -> 이북뷰어로 화면 전환)
+    onStartLoading()    // -> isDownloading이 true가 됨.
 
-){
-    //책을 클릭 시 시행할 것(책 다운로드해서 -> 이북뷰어로 화면전환)
-    onStartLoading()    //-> isDownloading이 true가 됨.
     coroutineScope.launch {
         try {
-            //서버에서 책 다운로드
+            // 서버에서 책 다운로드
             val bookFile = downloadBookFromServer(
                 context = context,
                 isbn = book.isbn
             )
-            //서버에 책이 존재한다면
+
+            // 서버에 책이 존재한다면
             if (bookFile != null) {
-                // EbookViewer로 이동 : Navigation
+                // EbookViewerWithMusicScreen으로 이동 : Navigation
                 onNavigateToEbookViewer(
                     book.title,
                     book.author,
                     book.isbn,
                     bookFile.absolutePath
                 )
-            } else {    //서버에 책이 존재하지 않으면
+            } else {
+                // 서버에 책이 존재하지 않으면
                 Toast.makeText(
                     context,
                     "책을 불러올 수 없습니다",

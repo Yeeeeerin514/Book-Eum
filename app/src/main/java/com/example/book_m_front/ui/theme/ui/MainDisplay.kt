@@ -2,7 +2,6 @@ package com.example.book_m_front.ui.theme.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -22,25 +21,32 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.book_m_front.R
+import com.example.book_m_front.ui.theme.ui.book.BookRow
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
 
-
+/*
 data class Book(
     val id: Int,
     val title: String,
     val author: String,
     val progress: Int,
     val tags: List<String>
-)
+)*/
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookHomeScreen() {
+fun MainDisplayScreen(
+    onUserClick: () -> Unit,
+    onBookClick: (String) -> Unit,
+    onSearchButtonClick: (String) -> Unit
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
 
     // 샘플 데이터
-    val todayBooks = List(4) { index ->
+    //TODO 이거 api에게 받아와서 저장하도록 해야됨.
+    val historyBooks = getHistoryBooks()
+    /*val historyBooks = List(4) { index ->
         Book(
             id = index,
             title = "책 제목 ${index + 1}",
@@ -58,7 +64,7 @@ fun BookHomeScreen() {
             progress = 22,
             tags = listOf()
         )
-    }
+    }*/
 
     Scaffold(
         topBar = {
@@ -80,13 +86,13 @@ fun BookHomeScreen() {
                     }
                 },
                 actions = {
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {onUserClick()}) {
                         Icon(Icons.Default.Person, contentDescription = "프로필")
                     }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = { /*TODO 나중에 구현한다면*/}) {
                         Icon(Icons.Default.ThumbUp, contentDescription = "북마크")
                     }
-                    IconButton(onClick = {}) {
+                    IconButton(onClick = {/*TODO 나중에 구현한다면*/}) {
                         Icon(Icons.Default.Menu, contentDescription = "메뉴")
                     }
                 },
@@ -140,7 +146,10 @@ fun BookHomeScreen() {
                     onValueChange = { searchQuery = it },
                     placeholder = { Text("책 제목으로 검색") },
                     trailingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = "검색")
+                        IconButton(onClick = {onSearchButtonClick(searchQuery)}){
+                            Icon(Icons.Default.Search, contentDescription = "검색")
+                        }
+
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -172,8 +181,8 @@ fun BookHomeScreen() {
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(horizontal = 16.dp)
                 ) {
-                    items(todayBooks) { book ->
-                        BookCard(
+                    items(historyBooks) { book ->
+                        InProgressBookCard(
                             book = book,
                             showProgress = book.id == 0
                         )
@@ -193,17 +202,14 @@ fun BookHomeScreen() {
             }
 
             item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp)
-                ) {
-                    items(myHistory) { book ->
-                        BookCard(
-                            book = book,
-                            showProgress = true
-                        )
+                BookRow(
+                    books = historyBooks,
+                    onBookClick = { book ->
+                        // TODO: 다운로드 로직 추가 필요
+                        // 임시로 ISBN만 전달
+                        onBookClick(book.isbn)
                     }
-                }
+                )
             }
 
             // 하단 여백
@@ -213,9 +219,10 @@ fun BookHomeScreen() {
         }
     }
 }
+/*
 
 @Composable
-fun BookCard(
+fun InProgressBookCard(
     book: Book,
     showProgress: Boolean = false
 ) {
@@ -337,9 +344,10 @@ fun BookCard(
         )
     }
 }
+*/
 
 @Preview
 @Composable
 fun MainDisplayPreview(){
-    BookHomeScreen()
+    MainDisplayScreen()
 }

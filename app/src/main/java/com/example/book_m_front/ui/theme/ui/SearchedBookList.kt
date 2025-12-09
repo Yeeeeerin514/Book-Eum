@@ -31,9 +31,12 @@ data class SearchBook(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SearchedBookList() {
+fun SearchedBookList(
+    searchQueryFromNav: String,      // Navigation에서 전달받은 검색어
+    onBookClick: (String) -> Unit,     // 책 클릭 이벤트 (isbn 전달)
+) {
     var selectedTab by remember { mutableIntStateOf(0) }
-    var searchQuery by remember { mutableStateOf("") }
+    var searchQuery by remember { mutableStateOf(searchQueryFromNav) }
 
     // 샘플 데이터
     val searchResults = List(12) { index ->

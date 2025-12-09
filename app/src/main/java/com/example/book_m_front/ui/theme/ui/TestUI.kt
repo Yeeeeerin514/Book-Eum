@@ -1,3 +1,4 @@
+/*
 package com.example.book_m_front.ui.theme.ui
 
 import androidx.compose.runtime.Composable
@@ -67,8 +68,7 @@ fun TestUI(){
         TextField(
             value = spotifyAccount,
             onValueChange = { spotifyAccount = it },
-            label = { Text("spotifyAccount") },
-            modifier = Modifier.fillMaxWidth(),
+            label = { Text("spotifyAccount") },            modifier = Modifier.fillMaxWidth(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
         )
         Button(
@@ -92,4 +92,4 @@ fun TestUI(){
 @Composable
 fun StartLoginPreview(){
     TestUI()
-}
+}*/

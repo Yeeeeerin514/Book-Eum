@@ -2,6 +2,11 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+
+    // ✨ 핵심 1: Kapt 플러그인 적용 (없으면 kapt 종속성 정의 오류)
+    id("kotlin-kapt")
+    // ✨ 핵심 2: Hilt 플러그인 적용 (Hilt DI 코드를 생성하기 위해 필요)
+    //id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -54,10 +59,12 @@ dependencies {
     implementation(libs.androidx.compose.material3)
 
     // Navigation 라이브러리들
-    implementation(libs.androidx.navigation.fragment.ktx)
-    implementation(libs.androidx.navigation.ui.ktx)
+    //implementation(libs.androidx.navigation.fragment.ktx)
+    //implementation(libs.androidx.navigation.ui.ktx)
     // navigation-compose는 최신 버전 하나만 남깁니다.
-    implementation("androidx.navigation:navigation-compose:2.9.5")
+    implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.compose.runtime)
+    implementation(libs.androidx.material3)
 
     // 테스트 관련 의존성
     testImplementation(libs.junit)
@@ -80,13 +87,39 @@ dependencies {
 
 
     // FolioReader - EPUB 뷰어 라이브러리
-    implementation("com.folioreader:folioreader:0.6.0")
+    //implementation("com.folioreader:folioreader:0.6.0")
 
     // 또는 Android EPUB3 라이브러리 사용
-    implementation("org.readium:readium-shared:2.2.0")
-    implementation("org.readium:readium-streamer:2.2.0")
+    //implementation("org.readium:readium-shared:2.2.0")
+    //implementation("org.readium:readium-streamer:2.2.0")
 
     // PDF 및 다양한 포맷 지원을 위한 대안
-    implementation("com.github.barteksc:android-pdf-viewer:3.2.0-beta.1")
+    //implementation("com.github.barteksc:android-pdf-viewer:3.2.0-beta.1")
+
+    // Hilt: 의존성 주입 라이브러리 (자동으로 객체 생성/관리)
+    implementation("com.google.dagger:hilt-android:2.48")
+    //kapt("com.google.dagger:hilt-compiler:2.48")
+    //kapt("androidx.hilt:hilt-compiler:1.1.0")
+
+
+    // ===== ExoPlayer for 음악 재생 =====
+    val media3Version = "1.2.0"
+    implementation("androidx.media3:media3-exoplayer:$media3Version")
+    implementation("androidx.media3:media3-ui:$media3Version")
+    implementation("androidx.media3:media3-common:$media3Version")
+    implementation("androidx.media3:media3-session:$media3Version")
+
+    // ===== Lifecycle & ViewModel =====
+    val lifecycleVersion = "2.6.2"
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycleVersion")
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:$lifecycleVersion")
+
+    // ===== Coroutines =====
+    val coroutinesVersion = "1.7.3"
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
+
+    // ===== Coil for 이미지 로딩 (앨범 아트용) =====
+    implementation("io.coil-kt:coil-compose:2.5.0")
 
 }

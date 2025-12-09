@@ -3,9 +3,7 @@ package com.example.book_m_front.ui.theme.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -14,16 +12,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -39,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -52,9 +45,17 @@ import com.example.book_m_front.ui.theme.ui_resource.AppColors
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun BookInfo(bookTitle: String, bookAuthor: String, bookPublisher: String, keywords: List<String>,
-             plot: String, bookImage: Painter, bookTable: String){
+fun BookInfo(bookIsbn: String/*bookTitle: String, bookAuthor: String, bookPublisher: String, keywords: List<String>,
+             plot: String, bookImage: Painter, bookTable: String*/){
     //일단 Painter로 받는걸로 해뒀는데 흠~~ 인수줄때 헷갈리지 않으려나 쬠 걱정!
+    var book = getBook(bookIsbn)    //TODO 이거 api에서 받아오는 함수 정의하기
+    var bookTitle = book.title      //TODO 여기 그냥 싹 다 다시 정의
+    var bookAuthor = book.author
+    var bookPublisher = book.publisher
+    var plot = book.plot
+    var bookImageUrl = book.coverImg
+
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -90,7 +91,7 @@ fun BookInfo(bookTitle: String, bookAuthor: String, bookPublisher: String, keywo
                 modifier = Modifier
                     .padding(top = 20.dp, bottom = 20.dp)
             ){
-                BookImage(bookImage)
+                BookImage(bookImageUrl)
                 Spacer(modifier = Modifier.width(15.dp))
                 Column(){
                     AuthorPublisher(bookAuthor, bookPublisher)

@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun SignUpScreen(
     onBackClick: () -> Unit,
-    onSignUpSuccess: (String, String, String, String) -> Unit
+    onSignUpSuccess: () -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var userId by remember { mutableStateOf("") }
@@ -221,7 +221,9 @@ fun SignUpScreen(
                         password.length < 6 ->
                             errorMessage = "비밀번호는 6자 이상이어야 합니다"
                         else -> {
-                            onSignUpSuccess(name, userId, password, email)
+                            if(checkSignUp(name, userId, password, email))  //TODO 여기서 api구현하기. 이미 있는 회원이면 false, 새 회워이면 true를 반환하도록.
+                                onSignUpSuccess()
+                            else errorMessage = "이미 등록된 회원입니다."
                         }
                     }
                 },
