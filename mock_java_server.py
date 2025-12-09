@@ -19,19 +19,6 @@ async def receive_analysis_callback(request: Request):
     await asyncio.sleep(0.5)
     return {"status": "received-analysis", "chapter_number": data.get("chapter_number")}
 
-@app.post("/api/python/music/callback")
-async def receive_music_callback(request: Request):
-    """
-    파이썬 서버에서 음악 생성 결과를 받는 엔드포인트
-    """
-    data = await request.json()
-    print("\n🎵 [MOCK JAVA] 음악 결과 수신 ------------------------")
-    print(json.dumps(data, ensure_ascii=False, indent=2))
-    print("----------------------------------------------------\n")
-    # 처리 시간 시뮬레이션 (비동기)
-    await asyncio.sleep(0.5)
-    return {"status": "received-music", "chapter_number": data.get("chapter_number")}
-
 @app.get("/health")
 async def health_check():
     return {"status": "mock-java-ok"}

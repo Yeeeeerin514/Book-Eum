@@ -8,8 +8,6 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # 로컬 저장 경로
 OUTPUT_DIR = os.path.join(os.getcwd(), "output")
 TEXT_DIR = os.path.join(OUTPUT_DIR, "texts")
-MUSIC_DIR = os.path.join(OUTPUT_DIR, "music")
 
 # 폴더 생성
 os.makedirs(TEXT_DIR, exist_ok=True)
-os.makedirs(MUSIC_DIR, exist_ok=True)
