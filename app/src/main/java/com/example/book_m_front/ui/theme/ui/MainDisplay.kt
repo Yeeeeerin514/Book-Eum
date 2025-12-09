@@ -13,58 +13,73 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.book_m_front.R
-import com.example.book_m_front.ui.theme.ui.book.BookRow
+import com.example.book_m_front.network.dto.BookItem
+import com.example.book_m_front.network.dto.ReadingHistoryItem
+import com.example.book_m_front.repository.Repository
+import com.example.book_m_front.ui.theme.ui.book.BookCard
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
+import kotlinx.coroutines.launch
 
-/*
-data class Book(
-    val id: Int,
-    val title: String,
-    val author: String,
-    val progress: Int,
-    val tags: List<String>
-)*/
-
+/**
+ * 메인 디스플레이 화면 (API 연동 완료)
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainDisplayScreen(
-    onUserClick: () -> Unit,
-    onBookClick: (String) -> Unit,
-    onSearchButtonClick: (String) -> Unit
+    onUserClick: () -> Unit = {},
+    onBookClick: (String) -> Unit = {},
+    onSearchButtonClick: (String) -> Unit = {}
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
     var selectedTab by remember { mutableIntStateOf(0) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // 샘플 데이터
-    //TODO 이거 api에게 받아와서 저장하도록 해야됨.
-    val historyBooks = getHistoryBooks()
-    /*val historyBooks = List(4) { index ->
-        Book(
-            id = index,
-            title = "책 제목 ${index + 1}",
-            author = "작은 글 설명",
-            progress = if (index == 0) 0 else 0,
-            tags = listOf("장르", "키워드", "키워드")
-        )
-    }
+    // 데이터 상태
+    var todayRecommendations by remember { mutableStateOf<List<BookItem>>(emptyList()) }
+    var popularBooks by remember { mutableStateOf<List<BookItem>>(emptyList()) }
+    var readingHistory by remember { mutableStateOf<List<ReadingHistoryItem>>(emptyList()) }
 
-    val myHistory = List(3) { index ->
-        Book(
-            id = index + 10,
-            title = "책 제목 ${index + 1}",
-            author = "작은 글 설명",
-            progress = 22,
-            tags = listOf()
-        )
-    }*/
+    // 로딩 상태
+    var isLoadingRecommendations by remember { mutableStateOf(true) }
+    var isLoadingPopular by remember { mutableStateOf(true) }
+    var isLoadingHistory by remember { mutableStateOf(true) }
+
+    // 데이터 로드
+    LaunchedEffect(Unit) {
+        val repository = Repository.get()
+
+        // 병렬로 데이터 로드
+        launch {
+            repository.getTodayRecommendations(limit = 10).onSuccess {
+                todayRecommendations = it
+            }
+            isLoadingRecommendations = false
+        }
+
+        launch {
+            repository.getPopularBooks(limit = 10).onSuccess {
+                popularBooks = it
+            }
+            isLoadingPopular = false
+        }
+
+        launch {
+            repository.getReadingHistory(page = 0, size = 10).onSuccess {
+                readingHistory = it
+            }
+            isLoadingHistory = false
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -86,13 +101,13 @@ fun MainDisplayScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = {onUserClick()}) {
+                    IconButton(onClick = onUserClick) {
                         Icon(Icons.Default.Person, contentDescription = "프로필")
                     }
-                    IconButton(onClick = { /*TODO 나중에 구현한다면*/}) {
+                    IconButton(onClick = { /* TODO: 북마크 */ }) {
                         Icon(Icons.Default.ThumbUp, contentDescription = "북마크")
                     }
-                    IconButton(onClick = {/*TODO 나중에 구현한다면*/}) {
+                    IconButton(onClick = { /* TODO: 메뉴 */ }) {
                         Icon(Icons.Default.Menu, contentDescription = "메뉴")
                     }
                 },
@@ -144,12 +159,20 @@ fun MainDisplayScreen(
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
-                    placeholder = { Text("책 제목으로 검색") },
+                    placeholder = {
+                        Text(
+                            if (selectedTab == 0) "책 제목으로 검색"
+                            else "장르로 검색"
+                        )
+                    },
                     trailingIcon = {
-                        IconButton(onClick = {onSearchButtonClick(searchQuery)}){
+                        IconButton(onClick = {
+                            if (searchQuery.isNotEmpty()) {
+                                onSearchButtonClick(searchQuery)
+                            }
+                        }) {
                             Icon(Icons.Default.Search, contentDescription = "검색")
                         }
-
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -163,8 +186,7 @@ fun MainDisplayScreen(
                 )
             }
 
-            //lazy column안에서는 모두 item{}으로 씌워야 하나보다.
-            item {Spacer(modifier = Modifier.height(20.dp))}
+            item { Spacer(modifier = Modifier.height(20.dp)) }
 
             // 오늘의 책&플리 추천
             item {
@@ -177,15 +199,62 @@ fun MainDisplayScreen(
             }
 
             item {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(horizontal = 16.dp)
-                ) {
-                    items(historyBooks) { book ->
-                        InProgressBookCard(
-                            book = book,
-                            showProgress = book.id == 0
-                        )
+                if (isLoadingRecommendations) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AppColors.DeepGreen)
+                    }
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        items(todayRecommendations) { book ->
+                            BookCard(
+                                book = book,
+                                onClick = { onBookClick(book.isbn) }
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 인기 책
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    "인기 책",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                )
+            }
+
+            item {
+                if (isLoadingPopular) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AppColors.DeepGreen)
+                    }
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        items(popularBooks) { book ->
+                            BookCard(
+                                book = book,
+                                onClick = { onBookClick(book.isbn) }
+                            )
+                        }
                     }
                 }
             }
@@ -202,14 +271,41 @@ fun MainDisplayScreen(
             }
 
             item {
-                BookRow(
-                    books = historyBooks,
-                    onBookClick = { book ->
-                        // TODO: 다운로드 로직 추가 필요
-                        // 임시로 ISBN만 전달
-                        onBookClick(book.isbn)
+                if (isLoadingHistory) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = AppColors.DeepGreen)
                     }
-                )
+                } else if (readingHistory.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "읽은 책이 없습니다",
+                            color = Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(horizontal = 16.dp)
+                    ) {
+                        items(readingHistory) { historyItem ->
+                            BookCard(
+                                book = historyItem.book,
+                                onClick = { onBookClick(historyItem.book.isbn) }
+                            )
+                        }
+                    }
+                }
             }
 
             // 하단 여백
@@ -219,135 +315,9 @@ fun MainDisplayScreen(
         }
     }
 }
-/*
-
-@Composable
-fun InProgressBookCard(
-    book: Book,
-    showProgress: Boolean = false
-) {
-    Column (
-        modifier = Modifier
-            .width(120.dp)
-    ){
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .aspectRatio(0.8f)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Color.LightGray)
-        ) {
-            // 상단 완료 버튼 또는 진행률
-            if (showProgress && book.progress > 0) {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomStart)
-                        .offset(x = (-15).dp)
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = AppColors.DeepGreen.copy(alpha = 0.7f)
-                ) {
-                    Text(
-                        "  진행률 ${book.progress}%",
-                        color = Color.White,
-                        fontSize = 10.sp,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                    )
-                }
-            } else {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = 15.dp)
-                        .padding(8.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = AppColors.DeepGreen
-                ) {
-                    Text(
-                        "장르  ",
-                        color = Color.White,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                    )
-                }
-            }
-
-            // 하단 정보
-            Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(12.dp)
-            ) {
-                // 태그들
-                if (book.tags.isNotEmpty()) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    ) {
-                        book.tags.take(2).forEach { tag ->
-                            Surface(
-                                shape = RoundedCornerShape(8.dp),
-                                color = AppColors.DeepGreen.copy(alpha =0.7f)
-                            ) {
-                                Text(
-                                    tag,
-                                    color = Color.White,
-                                    fontSize = 9.sp,
-                                    modifier = Modifier.padding(
-                                        horizontal = 6.dp,
-                                        vertical = 2.dp
-                                    )
-                                )
-                            }
-                        }
-                    }
-                    if (book.tags.size > 2) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.padding(bottom = 8.dp)
-                        ) {
-                            book.tags.drop(2).forEach { tag ->
-                                Surface(
-                                    shape = RoundedCornerShape(8.dp),
-                                    color = AppColors.DeepGreen.copy(alpha =0.7f)
-                                ) {
-                                    Text(
-                                        tag,
-                                        color = Color.White,
-                                        fontSize = 9.sp,
-                                        modifier = Modifier.padding(
-                                            horizontal = 6.dp,
-                                            vertical = 2.dp
-                                        )
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-
-            }
-        }
-        Text(
-            book.title,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black
-        )
-        Text(
-            book.author,
-            fontSize = 11.sp,
-            color = Color.Gray
-        )
-    }
-}
-*/
 
 @Preview
 @Composable
-fun MainDisplayPreview(){
+fun MainDisplayPreview() {
     MainDisplayScreen()
 }

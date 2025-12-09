@@ -30,7 +30,7 @@ data class PlaylistItem(//흠 뭐 id같은거 필요없나?
     val creator: String
 )
 @Composable
-fun PlaylistRow(playlists: List<PlaylistItem>, darkGreen: Color) {
+fun PlaylistRow(playlists: List<com.example.book_m_front.network.dto.PlaylistItem>, darkGreen: Color) {
     LazyRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
