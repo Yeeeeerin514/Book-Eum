@@ -2,6 +2,7 @@ from fastapi import FastAPI, Request
 import uvicorn
 import json
 import time
+import asyncio
 
 app = FastAPI(title="Mock Java Server")
 
@@ -14,8 +15,8 @@ async def receive_analysis_callback(request: Request):
     print("\n📥 [MOCK JAVA] 분석 결과 수신 ----------------------")
     print(json.dumps(data, ensure_ascii=False, indent=2))
     print("----------------------------------------------------\n")
-    # 처리 시간 시뮬레이션
-    time.sleep(0.5)
+    # 처리 시간 시뮬레이션 (비동기)
+    await asyncio.sleep(0.5)
     return {"status": "received-analysis", "chapter_number": data.get("chapter_number")}
 
 @app.post("/api/python/music/callback")
@@ -27,8 +28,8 @@ async def receive_music_callback(request: Request):
     print("\n🎵 [MOCK JAVA] 음악 결과 수신 ------------------------")
     print(json.dumps(data, ensure_ascii=False, indent=2))
     print("----------------------------------------------------\n")
-    # 처리 시간 시뮬레이션
-    time.sleep(0.5)
+    # 처리 시간 시뮬레이션 (비동기)
+    await asyncio.sleep(0.5)
     return {"status": "received-music", "chapter_number": data.get("chapter_number")}
 
 @app.get("/health")
