@@ -65,6 +65,7 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.window)
 
     // 테스트 관련 의존성
     testImplementation(libs.junit)
@@ -121,5 +122,17 @@ dependencies {
 
     // ===== Coil for 이미지 로딩 (앨범 아트용) =====
     implementation("io.coil-kt:coil-compose:2.5.0")
+
+
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    implementation("com.google.accompanist:accompanist-webview:0.34.0")
+
+    // SLF4J API (Logger, LoggerFactory 등)
+    implementation("org.slf4j:slf4j-api:1.7.32")
+
+    // SLF4J의 실제 로깅 구현체 (이것이 없으면 경고 메시지가 뜸)
+    implementation("org.slf4j:slf4j-simple:1.7.32")
+
 
 }

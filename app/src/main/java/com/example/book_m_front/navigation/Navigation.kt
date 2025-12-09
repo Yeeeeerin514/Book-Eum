@@ -16,6 +16,8 @@ import com.example.book_m_front.ui.theme.ui.login.LoginScreen
 import com.example.book_m_front.ui.theme.ui.login.SignUpScreen
 import com.example.book_m_front.ui.theme.ui.login.Start
 import com.example.book_m_front.ui.theme.ui.login.StartLogin
+import java.net.URLDecoder
+import java.net.URLEncoder
 
 
 // Navigation Routes 정의
@@ -39,18 +41,18 @@ sealed class Screen(val route: String) {
         }
     }
 
-    object EbookViewer : Screen("ebook_viewer/{bookTitle}/{bookAuthor}/{bookIsbn}/{bookFilePath}") {
+    object EbookViewer : Screen("ebook_viewer/{bookTitle}/{bookAuthor}/{bookIsbn}") {
         fun createRoute(
             bookTitle: String,
             bookAuthor: String,
             bookIsbn: String,
-            bookFilePath: String
+            //bookFilePath: String
         ): String {
             // URL 인코딩을 위해 특수문자 처리
-            val encodedTitle = java.net.URLEncoder.encode(bookTitle, "UTF-8")
-            val encodedAuthor = java.net.URLEncoder.encode(bookAuthor, "UTF-8")
-            val encodedFilePath = java.net.URLEncoder.encode(bookFilePath, "UTF-8")
-            return "ebook_viewer/$encodedTitle/$encodedAuthor/$bookIsbn/$encodedFilePath"
+            val encodedTitle = URLEncoder.encode(bookTitle, "UTF-8")
+            val encodedAuthor = URLEncoder.encode(bookAuthor, "UTF-8")
+            //val encodedFilePath = URLEncoder.encode(bookFilePath, "UTF-8")
+            return "ebook_viewer/$encodedTitle/$encodedAuthor/$bookIsbn"
         }
     }
 
@@ -147,7 +149,7 @@ fun AppNavigation() {
                             bookTitle = bookTitle,
                             bookAuthor = bookAuthor,
                             bookIsbn = bookIsbn,
-                            bookFilePath = bookFilePath
+                            //bookFilePath = bookFilePath
                         )
                     )
                 }
@@ -185,8 +187,20 @@ fun AppNavigation() {
             val bookIsbn = backStackEntry.arguments?.getString("bookIsbn") ?: ""
 
             BookInfo(
-                bookIsbn = bookIsbn
+                bookIsbn = bookIsbn,
                 // TODO: 필요한 다른 파라미터들 추가
+                onBackClick = { navController.popBackStack() },
+                onReadClick = { title, author, isbn ->
+                    navController.navigate(
+                        Screen.EbookViewer.createRoute(
+                            bookTitle = title,
+                            bookAuthor = author,
+                            bookIsbn = isbn,
+                            //bookFilePath = bookFilePath
+                        )
+                    )
+                }
+
             )
         }
 
@@ -202,34 +216,34 @@ fun AppNavigation() {
                 },
                 navArgument("bookIsbn") {
                     type = NavType.StringType
-                },
+                },/*
                 navArgument("bookFilePath") {
                     type = NavType.StringType
-                }
+                }*/
             )
         ) { backStackEntry ->
-            val bookTitle = java.net.URLDecoder.decode(
+            val bookTitle = URLDecoder.decode(
                 backStackEntry.arguments?.getString("bookTitle") ?: "",
                 "UTF-8"
             )
-            val bookAuthor = java.net.URLDecoder.decode(
+            val bookAuthor = URLDecoder.decode(
                 backStackEntry.arguments?.getString("bookAuthor") ?: "",
                 "UTF-8"
             )
             val bookIsbn = backStackEntry.arguments?.getString("bookIsbn") ?: ""
-            val bookFilePath = java.net.URLDecoder.decode(
+            /*val bookFilePath = URLDecoder.decode(
                 backStackEntry.arguments?.getString("bookFilePath") ?: "",
                 "UTF-8"
-            )
+            )*/
 
             EbookViewerWithMusicScreen(
                 bookTitle = bookTitle,
                 bookAuthor = bookAuthor,
                 bookIsbn = bookIsbn,
-                bookFilePath = bookFilePath,
+                //bookFilePath = bookFilePath,
                 onBackClick = {
                     navController.popBackStack()
-                }
+                },
             )
         }
 

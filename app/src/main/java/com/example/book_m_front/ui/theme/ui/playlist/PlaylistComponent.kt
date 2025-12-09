@@ -22,13 +22,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.book_m_front.network.dto.PlaylistItem
 import com.example.book_m_front.ui.theme.ui.badge.Badge
 
 //데이터 패키지로 따로 관리하는 게 좋을 수도
-data class PlaylistItem(//흠 뭐 id같은거 필요없나?
+/*data class PlaylistItem(//흠 뭐 id같은거 필요없나?
     val title: String,
     val creator: String
-)
+)*/
 @Composable
 fun PlaylistRow(playlists: List<com.example.book_m_front.network.dto.PlaylistItem>, darkGreen: Color) {
     LazyRow(
@@ -68,10 +69,12 @@ fun PlaylistCard(playlist: PlaylistItem, darkGreen: Color) {
             fontSize = 13.sp,
             fontWeight = FontWeight.Bold
         )
-        Text(
-            text = playlist.creator,
-            fontSize = 11.sp,
-            color = Color.Gray
-        )
+        playlist.creator?.let {
+            Text(
+                text = it,
+                fontSize = 11.sp,
+                color = Color.Gray
+            )
+        }
     }
 }

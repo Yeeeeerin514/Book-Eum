@@ -2,22 +2,19 @@ package com.example.book_m_front.network.dto
 
 // ================== 공통 응답 ==================
 
-/**
- * 기본 응답 (성공/실패만 포함)
- */
+//기본 응답 : 성공/실패 를 알려줌.
 data class BaseResponse(
     val success: Boolean,
     val message: String? = null
 )
 
-/**
- * 에러 응답
- */
+//에러 응답
 data class ErrorResponse(
     val success: Boolean = false,
     val error: ErrorDetail
 )
 
+//에러 세부사항
 data class ErrorDetail(
     val code: String,
     val message: String
@@ -25,17 +22,13 @@ data class ErrorDetail(
 
 // ================== 인증 관련 ==================
 
-/**
- * 로그인 요청
- */
+//로그인 요청
 data class UserLoginRequest(
     val id: String,
     val password: String
 )
 
-/**
- * 회원가입 요청
- */
+//회원가입 요청
 data class UserJoinRequest(
     val id: String,
     val password: String,
@@ -43,16 +36,12 @@ data class UserJoinRequest(
     val email: String? = null
 )
 
-/**
- * 토큰 갱신 요청
- */
+//토큰 갱신 요청
 data class RefreshTokenRequest(
     val refreshToken: String
 )
 
-/**
- * 인증 응답 (로그인, 회원가입)
- */
+//로그인, 회원가입 응답
 data class AuthUser(
     val id: String,
     val name: String,
@@ -99,9 +88,7 @@ data class ImageUploadResponse(
 
 // ================== 책 정보 ==================
 
-/**
- * 책 기본 정보 (리스트용)
- */
+//책 기본 정보 (리스트용)
 data class BookItem(
     val isbn: String,
     val title: String,
@@ -111,9 +98,7 @@ data class BookItem(
     val genre: List<String>? = null
 )
 
-/**
- * 책 상세 정보
- */
+//책 상세 정보
 data class BookInfoResponse(
     val isbn: String,
     val title: String,
@@ -132,9 +117,7 @@ data class BookInfoResponse(
     val hasPlaylist: Boolean = false
 )
 
-/**
- * 책 검색 응답
- */
+//책 검색 응답
 data class SearchedBooks(
     val totalCount: Int,
     val limit: Int,
@@ -147,9 +130,7 @@ data class SearchBookByTitleResponse(
     val data: SearchedBooks
 )
 
-/**
- * 책 목록 응답 (공통)
- */
+//책 목록 응답
 data class BookListResponse(
     val success: Boolean = true,
     val books: List<BookItem>,
@@ -164,14 +145,14 @@ data class BookListResponse(
 data class BookDownloadResponse(
     val success: Boolean = true,
     val isbn: String,
-    val downloadUrl: String,
+    val downloadUrl: String,        //TODO : 책을 텍스트 파일로 받아와야 함.
     val expiresAt: String? = null  // URL 만료 시간
 )
 
 /**
  * 책 업로드 응답
  */
-data class BookUploadResponse(
+data class BookloadResponse(
     val success: Boolean,
     val message: String,
     val bookId: String? = null,
@@ -189,7 +170,7 @@ data class Music(
     val artist: String,
     val album: String,
     val albumArtUrl: String? = null,
-    val audioUrl: String,
+    val audioUrl: String? = null,
     val duration: Int? = null,  // 초 단위
     val chapterIndex: Int? = null  // 챕터별 플레이리스트인 경우
 )

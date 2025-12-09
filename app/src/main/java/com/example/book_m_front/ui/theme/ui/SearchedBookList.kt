@@ -61,7 +61,7 @@ fun SearchedBookList(
         scope.launch {
             try {
                 val repository = Repository.get()
-                val result = if (selectedTab == 0) {
+                val result = if (selectedTab == 0) {    //List<BookItem>을 받음.
                     // 제목으로 검색
                     repository.searchBooks(
                         query = searchQuery,
@@ -76,9 +76,9 @@ fun SearchedBookList(
                         offset = 0
                     )
                 }
-
-                result.onSuccess { books ->
-                    searchResults = books
+                //책 목록 불러오는 걸 성공했을 때
+                result.onSuccess { books ->     //books는 List<BookItem>임.
+                    searchResults = books       //searchResults 변수에 책 목록을 저장함.
                     if (books.isEmpty()) {
                         Toast.makeText(
                             context,
@@ -87,7 +87,7 @@ fun SearchedBookList(
                         ).show()
                     }
                 }
-
+                //책 목록을 불러오는 걸 실패했을 때.
                 result.onFailure { error ->
                     errorMessage = error.message
                     Toast.makeText(
@@ -289,6 +289,7 @@ fun SearchedBookList(
                             )
                         }
                     }
+                    //검색 결과가 존재하면! (검색 결과를 searchResults 변수에 저장한 상태.
                     searchResults.isNotEmpty() -> {
                         // 검색 결과 그리드
                         LazyVerticalGrid(

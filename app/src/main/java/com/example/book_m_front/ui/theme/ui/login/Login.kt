@@ -195,10 +195,26 @@ fun LoginScreen(
                     isLoading = true
                     errorMessage = ""
 
+                    //UI 테스트용 아이디&비밀번호----
+                    when{
+                        userId == "test" && password == "test" -> {
+                            // 로그인 성공
+                            Toast.makeText(
+                                context,
+                                "test님 환영합니다!",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            onLoginSuccess()
+                        }
+
+                    }
+                    //--------------------------
+
                     scope.launch {
                         try {
                             val repository = Repository.get()
                             val result = repository.login(userId, password)
+                            //reposoitory에서, api불러서, userId랑 password보냄.
 
                             result.onSuccess { authResponse ->
                                 // 로그인 성공

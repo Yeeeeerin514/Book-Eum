@@ -8,6 +8,7 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.example.book_m_front.network.dto.Music
 import com.google.common.util.concurrent.MoreExecutors
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
@@ -51,8 +52,8 @@ class MusicController @Inject constructor(
     val isPlaying: StateFlow<Boolean> = _isPlaying.asStateFlow()
 
     // 현재 재생 중인 곡 정보
-    private val _currentTrack = MutableStateFlow<Track?>(null)
-    val currentTrack: StateFlow<Track?> = _currentTrack.asStateFlow()
+    private val _currentMusic = MutableStateFlow<Music?>(null)
+    val currentMusic: StateFlow<Music?> = _currentMusic.asStateFlow()
 
     init {
         initializeController()
@@ -120,16 +121,16 @@ class MusicController @Inject constructor(
 
     // 음악 한 곡 재생
     // 사용 예: musicController.playMusic(myTrack)
-    fun playMusic(track: Track) {
+    fun playMusic(music: Music) {
         // MediaItem: ExoPlayer가 이해하는 음악 데이터 형식
         val mediaItem = MediaItem.Builder()
-            .setUri(track.audioUrl) // 서버 URL 설정 (가장 중요!)
-            .setMediaId(track.id.toString())
+            .setUri(music.audioUrl) // 서버 URL 설정 (가장 중요!)
+            .setMediaId(music.id.toString())
             .setMediaMetadata(
                 MediaMetadata.Builder()
-                    .setTitle(track.title)        // 곡 제목
-                    .setArtist(track.artist)      // 아티스트
-                    .setArtworkUri(track.albumArtUrl.toUri()) // 앨범 커버 URL
+                    .setTitle(music.title)        // 곡 제목
+                    .setArtist(music.artist)      // 아티스트
+                    .setArtworkUri(music.albumArtUrl?.toUri()) // 앨범 커버 URL
                     .build()
             )
             .build()
@@ -141,15 +142,15 @@ class MusicController @Inject constructor(
             play()                   // 재생 시작
         }
 
-        _currentTrack.value = track
+        _currentMusic.value = music
     }
 
     // 재생 목록 설정 및 재생
     // 사용 예: musicController.setPlaylist(trackList, startIndex = 2)
     //         → 3번째 곡부터 재생 시작
-    fun setPlaylist(tracks: List<Track>, startIndex: Int = 0) {
+    fun setPlaylist(music: List<Music>, startIndex: Int = 0) {
         // 여러 곡을 MediaItem 리스트로 변환
-        val mediaItems = tracks.map { track ->
+        val mediaItems = music.map { track ->
             MediaItem.Builder()
                 .setUri(track.audioUrl)
                 .setMediaId(track.id.toString())
@@ -157,7 +158,7 @@ class MusicController @Inject constructor(
                     MediaMetadata.Builder()
                         .setTitle(track.title)
                         .setArtist(track.artist)
-                        .setArtworkUri(track.albumArtUrl.toUri())
+                        .setArtworkUri(track.albumArtUrl?.toUri())
                         .build()
                 )
                 .build()
@@ -169,8 +170,8 @@ class MusicController @Inject constructor(
             play()
         }
 
-        if (tracks.isNotEmpty()) {
-            _currentTrack.value = tracks[startIndex]
+        if (music.isNotEmpty()) {
+            _currentMusic.value = music[startIndex]
         }
     }
 

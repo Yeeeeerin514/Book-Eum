@@ -60,10 +60,10 @@ fun BookInfo(
 
             try {
                 val repository = Repository.get()
-                val result = repository.getBookInfo(bookIsbn)
+                val result = repository.getBookInfo(bookIsbn)   //bookInfoResponse DTO를 받음.
 
                 result.onSuccess { info ->
-                    bookInfo = info
+                    bookInfo = info //bookinfo에 가져온 bookInfoResponse body?를 저장하는 듯.
                     isLiked = info.isLiked
                 }
 
@@ -179,6 +179,7 @@ fun BookInfo(
                         )
                     }
                 }
+                //책 정보를 가져와서 bookInfo에 저장함. (bookInfoResponse DTO)
                 bookInfo != null -> {
                     // 책 정보 표시
                     Column(
@@ -327,9 +328,9 @@ fun BookInfo(
                                 containerColor = AppColors.DeepGreen
                             )
                         ) {
-                            Icon(Icons.Default.PlayArrow, "읽기 시작")
+                            Icon(Icons.Default.PlayArrow, "책 읽기")
                             Spacer(modifier = Modifier.width(8.dp))
-                            Text("읽기 시작")
+                            Text("책 읽기")
                         }
                     }
                 }

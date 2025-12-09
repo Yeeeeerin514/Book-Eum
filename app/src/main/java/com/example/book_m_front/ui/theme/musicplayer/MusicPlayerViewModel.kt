@@ -2,6 +2,7 @@ package com.example.book_m_front.ui.theme.musicplayer
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.book_m_front.network.dto.Music
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +28,11 @@ class MusicPlayerViewModel @Inject constructor(
     val currentPosition = musicController.currentPosition
     val duration = musicController.duration
     val isPlaying = musicController.isPlaying
-    val currentTrack = musicController.currentTrack
+    val currentTrack = musicController.currentMusic
 
     // 재생 목록
-    private val _playlist = MutableStateFlow<List<Track>>(emptyList())
-    val playlist: StateFlow<List<Track>> = _playlist.asStateFlow()
+    private val _playlist = MutableStateFlow<List<Music>>(emptyList())
+    val playlist: StateFlow<List<Music>> = _playlist.asStateFlow()
 
     init {
         loadPlaylist() // ViewModel 생성 시 자동으로 재생 목록 로드
@@ -43,7 +44,7 @@ class MusicPlayerViewModel @Inject constructor(
             musicRepository.getPlaylist().collect { result ->
                 when (result) {
                     is NetworkResult.Success -> {
-                        _playlist.value = result.data
+                        _playlist.value = result.data!!
                     }
                     is NetworkResult.Error -> {
                         // 에러 처리 (예: 토스트 메시지 표시)
@@ -57,13 +58,13 @@ class MusicPlayerViewModel @Inject constructor(
     // UI에서 호출할 함수들
 
     // 특정 곡 재생
-    fun playTrack(track: Track) {
-        musicController.playMusic(track)
+    fun playTrack(music: Music) {
+        musicController.playMusic(music)
     }
 
     // 재생 목록 전체 재생
-    fun playPlaylist(tracks: List<Track>, startIndex: Int = 0) {
-        musicController.setPlaylist(tracks, startIndex)
+    fun playPlaylist(music: List<Music>, startIndex: Int = 0) {
+        musicController.setPlaylist(music, startIndex)
     }
 
     // 재생/일시정지 토글

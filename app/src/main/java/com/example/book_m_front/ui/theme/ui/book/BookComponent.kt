@@ -25,7 +25,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.book_m_front.network.ServerRequestAndResponse.downloadBookFromServer
+import com.example.book_m_front.network.downloadAndGetBookPath
 import com.example.book_m_front.network.dto.BookItem
 import com.example.book_m_front.ui.theme.ui.badge.Badge
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
@@ -106,7 +106,7 @@ fun handleBookClickToEbookViewer(
     coroutineScope.launch {
         try {
             // 서버에서 책 다운로드
-            val bookFile = downloadBookFromServer(
+            val bookFile = downloadAndGetBookPath(
                 context = context,
                 isbn = book.isbn
             )
@@ -118,7 +118,7 @@ fun handleBookClickToEbookViewer(
                     book.title,
                     book.author,
                     book.isbn,
-                    bookFile.absolutePath
+                    bookFile
                 )
             } else {
                 // 서버에 책이 존재하지 않으면

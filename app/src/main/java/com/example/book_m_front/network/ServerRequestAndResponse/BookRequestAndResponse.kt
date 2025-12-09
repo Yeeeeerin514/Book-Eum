@@ -68,7 +68,7 @@ suspend fun uploadBookToServer(
             }
         } catch (e: Exception) {
             BookUploadResponse(false, "업로드 실패: ${e.message}")
-        }
+        } as BookUploadResponse
     }
 }
 
@@ -88,6 +88,8 @@ fun getFileName(context: Context, uri: Uri): String? {
 
 
 // 책 다운로드 함수 : 기존에 e-pub파일 자체를 받는 거에서 -> link를 받는 걸로 수정함.
+// 다시 e-pub파일을 받는 것으로 함.
+/*
 suspend fun downloadBookFromServer(
     context: Context,
     isbn: String
@@ -95,10 +97,10 @@ suspend fun downloadBookFromServer(
     return withContext(Dispatchers.IO) {
         try {
             //1단계 : 서버에 isbn을 넘겨서 책 다운로드 링크 받기
-            val bookResponse = Api.retrofitService.downloadBook(isbn)
+            val bookResponse = Api.retrofitService.downloadBookFile(isbn)
 
             //실패 시
-            if (bookResponse.epubFileUrl == null) {
+            if (!bookResponse.isSuccessful && bookResponse.body() == null) {
                 // 서버가 URL을 주지 않았거나, 실패 응답을 보냄
                 println("서버로부터 유효한 다운로드 URL을 받지 못했습니다.")
                 return@withContext null //리턴하니까..끝나는.
@@ -142,42 +144,4 @@ suspend fun downloadBookFromServer(
         }
     }
 }
-
-//바로 파일받는 옛날 코드
-/*
-suspend fun downloadBookFromServer(
-    context: Context,
-    isbn: String
-): File? {
-    return withContext(Dispatchers.IO) {
-        try {
-            val response = Api.retrofitService.downloadBook(isbn)
-
-            if (response.isSuccessful && response.body() != null) {
-                // 앱 내부 저장소에 파일 저장
-                //책 저장 폴더?생성?
-                val booksDir = File(context.filesDir, "books")
-                if (!booksDir.exists()) {
-                    booksDir.mkdirs()
-                }
-                //근데 이거 이펍파일을 받는게 맞나
-                val bookFile = File(booksDir, "$isbn.epub")
-
-                response.body()?.let { responseBody ->
-                    FileOutputStream(bookFile).use { output ->
-                        responseBody.byteStream().use { input ->
-                            input.copyTo(output)
-                        }
-                    }
-                }
-
-                bookFile
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
-    }
-}*/
+*/

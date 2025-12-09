@@ -121,7 +121,7 @@ class BookMusicRepository(private val context: Context) {
                 offset = offset,
                 sort = sort
             )
-        }.map { it.data.books }
+        }.map { it.data.books } //책 목록만 추출해서 보냄.
     }
 
     // 장르로 검색

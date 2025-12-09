@@ -1,11 +1,14 @@
 package com.example.book_m_front.ui.theme.viewmodel
 
+import android.app.Application
 import android.content.Context
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import com.example.book_m_front.network.downloadMusicAndGetPath
 import com.example.book_m_front.network.dto.Music
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,8 +19,7 @@ import kotlinx.coroutines.launch
  * 음악 재생을 관리하는 ViewModel
  * ExoPlayer를 사용하여 실제 음악 재생 기능 구현
  */
-class MusicPlayerViewModel : ViewModel() {
-
+class MusicPlayerViewModel(application: Application) : AndroidViewModel(application) {
     // ExoPlayer 인스턴스
     private var exoPlayer: ExoPlayer? = null
 
@@ -48,6 +50,11 @@ class MusicPlayerViewModel : ViewModel() {
     // 총 재생 시간 (초)
     private val _duration = MutableStateFlow(0L)
     val duration: StateFlow<Long> = _duration.asStateFlow()
+
+
+
+    private val _isPreparing = MutableStateFlow(false)
+    val isPreparing: StateFlow<Boolean> = _isPreparing
 
 
     /**
@@ -95,6 +102,44 @@ class MusicPlayerViewModel : ViewModel() {
     /**
      * 플레이리스트 설정
      */
+    // setPlaylist 함수를 아래와 같이 수정 또는 교체
+    fun setPlaylist(playlist: List<Music>) { // DTO의 Music 클래스
+        viewModelScope.launch {
+            _isPreparing.value = true
+            _playlist.value = playlist
+            exoPlayer?.clearMediaItems()
+
+            val context = getApplication<Application>().applicationContext
+            val mediaItems = mutableListOf<MediaItem>()
+
+            // 각 트랙에 대해 다운로드를 시도하고 MediaItem을 생성
+            playlist.forEach { music ->
+                // 1. 서버에서 음악 파일을 다운로드하고 로컬 경로를 얻어옴
+                val localMusicPath = downloadMusicAndGetPath(context, music.id) // DTO에 musicId가 있어야 함
+
+                if (localMusicPath != null) {
+                    // 2. 다운로드 성공 시, 로컬 파일 경로를 Uri로 MediaItem 생성
+                    val mediaItem = MediaItem.Builder()
+                        .setUri(localMusicPath) // ✨ 로컬 파일 경로 사용
+                        .setMediaMetadata(
+                            MediaMetadata.Builder()
+                                .setTitle(music.title)
+                                .setArtist(music.artist)
+                                .build()
+                        )
+                        .build()
+                    mediaItems.add(mediaItem)
+                } else {
+                    println("음악 파일 준비 실패: ${music.title}")
+                    // 실패 처리: 예) 플레이리스트에서 제외하거나, 에러 상태 표시
+                }
+            }
+
+            exoPlayer?.addMediaItems(mediaItems)
+            exoPlayer?.prepare()
+            _isPreparing.value = false
+        }
+    }/*
     fun setPlaylist(musicList: List<Music>, startIndex: Int = 0) {
         _playlist.value = musicList
         _currentTrackIndex.value = startIndex
@@ -110,7 +155,7 @@ class MusicPlayerViewModel : ViewModel() {
             player.prepare()
             player.playWhenReady = true
         }
-    }
+    }*/
 
     /**
      * 재생/일시정지 토글

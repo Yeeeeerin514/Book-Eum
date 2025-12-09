@@ -1,5 +1,6 @@
 package com.example.book_m_front.network
 
+import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
 import com.example.book_m_front.network.dto.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -140,6 +141,10 @@ interface ApiService {
         @Path("isbn") isbn: String
     ): Response<BookInfoResponse>
 
+    //책 string가져오기~
+    @GET("api/books/content/{isbn}") // 백엔드의 실제 API 엔드포인트에 맞춰 수정
+    suspend fun getBookContent(@Path("isbn") isbn: String): Response<String>
+
     /**
      * 책 다운로드 URL 가져오기
      * @param isbn 책 ISBN
@@ -150,6 +155,7 @@ interface ApiService {
         @Path("isbn") isbn: String
     ): Response<BookDownloadResponse>
 
+
     /**
      * 책 파일 직접 다운로드 (파일이 작은 경우)
      * @param isbn 책 ISBN
@@ -159,7 +165,7 @@ interface ApiService {
     @Streaming
     suspend fun downloadBookFile(
         @Path("isbn") isbn: String
-    ): Response<ResponseBody>
+    ): Response<ResponseBody>   //epub파일 자체를 받아올 땐, 따로 response DTO를 정의하지 않고, responsebody로 받아서 이걸 직접 처리함.
 
 
     // ================== 책 업로드 및 관리 ==================
@@ -207,6 +213,19 @@ interface ApiService {
     suspend fun getPlaylist(
         @Path("isbn") isbn: String
     ): Response<PlaylistResponse>
+
+    // ✨ --- 여기에 새로운 함수 추가 --- ✨
+    /**
+     * 음악 ID로 음악 파일 직접 다운로드
+     * @param musicId 다운로드할 음악의 고유 ID
+     * @return 음악 파일의 바이너리 데이터 스트림
+     */
+    @GET("musics/{musicId}/content") // 백엔드와 약속된 실제 엔드포인트로 수정해야 합니다.
+    @Streaming // 대용량 파일(음악)을 처리하기 위해 스트리밍 방식을 사용
+    suspend fun downloadMusicFile(
+        @Path("musicId") musicId: String
+    ): Response<ResponseBody>
+    // ✨ --- 여기까지 추가 --- ✨
 
     /**
      * 특정 챕터의 플레이리스트 가져오기 (챕터별 음악 제공 시)

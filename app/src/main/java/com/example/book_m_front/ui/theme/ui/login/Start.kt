@@ -60,5 +60,5 @@ fun Start(
 @Preview
 @Composable
 fun StartPreview(){
-    Start()
+    Start(onTimeout = {})   //프리뷰에선 시간이 지나가도 넘어가지 않음.
 }

@@ -259,7 +259,7 @@ private val sampleTrack = Music(
     title = "B 612",
     artist = "오왠(O.WHEN)",
     album = "어린왕자 OST",
-    audioUrl = "http://example.com/music.mp3",
+    //audioUrl = "http://example.com/music.mp3",
     albumArtUrl = "https://i.scdn.co/image/ab67616d0000b273a3a8a3a0d4b2b3a0d4b2b3a0" // 실제 이미지 URL 예시
 )
 
