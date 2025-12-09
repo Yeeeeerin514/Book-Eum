@@ -5,10 +5,12 @@ import BukkeuBukkeu.Book_Eum.dto.book.*;
 import BukkeuBukkeu.Book_Eum.service.book.BookAnalysisService;
 import BukkeuBukkeu.Book_Eum.service.book.BookRegisterService;
 import BukkeuBukkeu.Book_Eum.service.book.BookService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,18 +42,15 @@ public class BookController {
      * 도서 등록
      * 관리자나 유저가 epub 파일을 업로드해서 도서를 등록할 때 사용
      */
-    @PostMapping(value = "/register", consumes = {"multipart/form-data"})
-    public ResponseEntity<BookResponse> registerBook(
-            @RequestParam("isbn") String isbn,
-            @RequestParam("title") String title,
-            @RequestParam("author") String author,
-            @RequestParam("plot") String plot,
-            @RequestPart("epubFile") MultipartFile epubFile) {
-
-        Book newBook = bookRegisterService.registerBookWithEpub(isbn, title, author, plot, epubFile);
-        BookResponse response = BookResponse.fromEntity(newBook);
-
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> registerBook(
+            @Valid @ModelAttribute BookRegisterRequest request
+    ) {
+        bookRegisterService.register(request);
+        // “정상적으로 등록됐다”고만 간단히 알려줌
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body("Book registered successfully");
     }
 
     /**
