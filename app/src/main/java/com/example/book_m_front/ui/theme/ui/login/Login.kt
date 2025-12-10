@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -74,19 +75,16 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(75.dp))
 
             // Logo
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.deepgreenlogo),
-                    contentDescription = "앱 로고",
-                    modifier = Modifier.padding(bottom = 60.dp)
-                )
-            }
+            Image(
+                painter = painterResource(R.drawable.deepgreenlogo),
+                contentDescription = "앱 로고",
+                modifier = Modifier
+                    .padding(bottom = 25.dp),
+                contentScale  = ContentScale.Fit
+            )
 
             Text(
                 text = "북 - 음",
