@@ -40,7 +40,11 @@ import kotlinx.coroutines.launch
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
+import androidx.compose.ui.tooling.preview.Preview
+import com.example.book_m_front.ui.theme.viewmodel.EbookViewModel
+import com.example.book_m_front.util.Chapter
 import com.example.book_m_front.util.SafeEpubParser
+import kotlinx.coroutines.flow.MutableStateFlow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -50,8 +54,10 @@ fun EbookViewerWithMusicScreen(
     bookIsbn: String,
     testFilePath: String? = null,
     onBackClick: () -> Unit,
-    musicPlayerViewModel: MusicPlayerViewModel = viewModel()
-) {
+    musicPlayerViewModel: MusicPlayerViewModel = viewModel(),
+    ebookViewModel: EbookViewModel = viewModel()
+
+    ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -616,7 +622,9 @@ fun FontSizeDialog(
                         onValueChange = { onSizeChange(it.toInt()) },
                         valueRange = 12f..28f,
                         steps = 15,
-                        modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp)
                     )
                     Text("크게", fontSize = 18.sp)
                 }
@@ -627,5 +635,104 @@ fun FontSizeDialog(
                 Text("확인")
             }
         }
+    )
+}
+
+
+
+
+// --- EbookViewerWithMusic.kt 파일 하단에 아래 코드를 추가하세요 ---
+
+/**
+ * EbookViewerWithMusic 화면의 디자인을 확인하기 위한 프리뷰입니다.
+ * 로딩 중, 에러 발생, 콘텐츠 표시 등 다양한 상태를 테스트할 수 있습니다.
+ */
+
+// 1. 콘텐츠가 정상적으로 로드되었을 때의 프리뷰
+@Preview(name = "Content Loaded", showBackground = true)
+@Composable
+fun EbookViewerWithMusicPreview_Loaded() {
+    // 가짜 ViewModel 인스턴스 생성 (프리뷰에서는 실제 로직이 동작하지 않음)
+    val fakeEbookViewModel: EbookViewModel = viewModel()
+    val fakeMusicPlayerViewModel: MusicPlayerViewModel = viewModel()
+
+    // --- 가짜 데이터(Mock Data) 설정 ---
+    // 가짜 epub 콘텐츠
+    val mockEpubContent = EpubContent(
+        title = "미리보기용 책 제목",
+        chapters = listOf(
+            Chapter("1장: 시작", "이것은 첫 번째 챕터의 내용입니다. 스크롤하여 더 많은 내용을 볼 수 있습니다."),
+            Chapter("2장: 여정", "두 번째 챕터가 시작됩니다."),
+            Chapter("3장: 결말", "세 번째 챕터입니다.")
+        ),
+        author = "narin"
+    )
+    // 가짜 음악 플레이리스트
+    val mockPlaylist = listOf(
+        Music("1", "B Rosette", "Feryquitous", "asd", ""),
+        Music("2", "After the Rain", "ginkiha", "asd", ""),
+        Music("3", "Stasis", "Nagi", "asd", "")
+    )
+
+    // ViewModel 상태 강제 설정
+    fakeEbookViewModel.epubContent = mockEpubContent
+    fakeMusicPlayerViewModel.setPlaylist(mockPlaylist)
+
+    // isLoding과 errorMessage 상태도 직접 제어
+    fakeEbookViewModel.isLoading = MutableStateFlow(false)
+    fakeEbookViewModel.errorMessage = MutableStateFlow<String?>(null)
+
+
+    EbookViewerWithMusicScreen(
+        bookTitle = "테스트 책",
+        bookAuthor = "테스터",
+        bookIsbn = "123-456-789",
+        ebookViewModel = fakeEbookViewModel,
+        musicPlayerViewModel = fakeMusicPlayerViewModel,
+        onBackClick = {}
+    )
+}
+
+// 2. 로딩 중일 때의 프리뷰
+@Preview(name = "Loading State", showBackground = true)
+@Composable
+fun EbookViewerWithMusicPreview_Loading() {
+    val fakeEbookViewModel: EbookViewModel = viewModel()
+    val fakeMusicPlayerViewModel: MusicPlayerViewModel = viewModel()
+
+    // 로딩 상태를 true로 설정
+    fakeEbookViewModel.isLoading = MutableStateFlow(false)
+    fakeEbookViewModel.errorMessage = MutableStateFlow<String?>(null)
+    fakeEbookViewModel.epubContent = null
+
+    EbookViewerWithMusicScreen(
+        bookTitle = "로딩 책",
+        bookAuthor = "테스터",
+        bookIsbn = "123-456-789",
+        ebookViewModel = fakeEbookViewModel,
+        musicPlayerViewModel = fakeMusicPlayerViewModel,
+        onBackClick = {}
+    )
+}
+
+// 3. 에러가 발생했을 때의 프리뷰
+@Preview(name = "Error State", showBackground = true)
+@Composable
+fun EbookViewerWithMusicPreview_Error() {
+    val fakeEbookViewModel: EbookViewModel = viewModel()
+    val fakeMusicPlayerViewModel: MusicPlayerViewModel = viewModel()
+
+    // 에러 상태로 설정
+    fakeEbookViewModel.isLoading = MutableStateFlow(false)
+    fakeEbookViewModel.errorMessage = MutableStateFlow<String?>("책을 불러오는 데 실패했습니다. 네트워크 연결을 확인해주세요.")
+    fakeEbookViewModel.epubContent = null
+
+    EbookViewerWithMusicScreen(
+        bookTitle = "에러 책",
+        bookAuthor = "테스터",
+        bookIsbn = "123-456-789",
+        ebookViewModel = fakeEbookViewModel,
+        musicPlayerViewModel = fakeMusicPlayerViewModel,
+        onBackClick = {}
     )
 }

@@ -122,7 +122,22 @@ class MusicPlayerViewModel @Inject constructor(
      * 특정 곡을 재생합니다
      */
     fun playTrack(music: Music) {
-        musicController.playMusic(music)
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            try {
+                val result = musicController.playMusic(music)
+
+                if (result.isFailure) {
+                    _errorMessage.value = "재생 실패: ${result.exceptionOrNull()?.message}"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "오류: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     /**
@@ -131,9 +146,23 @@ class MusicPlayerViewModel @Inject constructor(
      * @param startIndex 시작할 곡의 인덱스 (기본값: 0)
      */
     fun playPlaylist(musicList: List<Music>, startIndex: Int = 0) {
-        musicController.setPlaylist(musicList, startIndex)
-    }
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
 
+            try {
+                val result = musicController.setPlaylist(musicList, startIndex)
+
+                if (result.isFailure) {
+                    _errorMessage.value = "플레이리스트 로드 실패: ${result.exceptionOrNull()?.message}"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "오류: ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
     /**
      * 재생/일시정지를 토글합니다
      */

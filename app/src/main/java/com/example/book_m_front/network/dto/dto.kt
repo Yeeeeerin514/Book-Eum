@@ -62,10 +62,10 @@ data class AuthResponse(
  */
 data class UserProfileResponse(
     val id: String,
-    val name: String,
-    val email: String? = null,
+    val name: String = "Unknown",
+    val email: String? = "12345@cau.ac.kr",
     val profileImageUrl: String? = null,
-    val spotifyAccount: String? = null,
+    val spotifyAccount: String? = "spotify@account",
     val createdAt: String? = null
 )
 

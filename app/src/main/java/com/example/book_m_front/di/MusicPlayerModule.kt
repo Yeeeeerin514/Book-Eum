@@ -2,6 +2,7 @@ package com.example.book_m_front.di
 
 import android.content.Context
 import com.example.book_m_front.ui.theme.musicplayer.MusicController
+import com.example.book_m_front.ui.theme.musicplayer.MusicDownloader
 import com.example.book_m_front.ui.theme.musicplayer.MusicRepository
 import com.example.book_m_front.ui.theme.musicplayer.MusicRepositoryImpl
 import dagger.Module
@@ -28,12 +29,21 @@ object MusicPlayerModule {
      * @Singleton으로 표시되어 앱 전체에서 하나의 인스턴스만 사용됩니다.
      * 이렇게 하면 음악이 계속 재생되는 동안 상태가 유지됩니다.
      */
+
+    @Provides
+    @Singleton
+    fun provideMusicDownloader(
+        @ApplicationContext context: Context
+    ): MusicDownloader {
+        return MusicDownloader(context)
+    }
     @Provides
     @Singleton
     fun provideMusicController(
-        @ApplicationContext context: Context
+        @ApplicationContext context: Context,
+        musicDownloader: MusicDownloader  // ✅ 추가
     ): MusicController {
-        return MusicController(context).apply {
+        return MusicController(context, musicDownloader).apply {
             // Controller 생성 시 초기화
             initializeController()
         }
@@ -52,4 +62,5 @@ object MusicPlayerModule {
     ): MusicRepository {
         return repositoryImpl
     }
+
 }

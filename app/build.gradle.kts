@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.material3)
     implementation(libs.androidx.window)
+    //implementation(libs.androidx.room.compiler)
 
     // 테스트 관련 의존성
     testImplementation(libs.junit)
@@ -107,6 +108,7 @@ dependencies {
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")  // ✅ 추가!
     //kotlin("kapt")  //hilt플러그인은 얘 뒤에 하는게 좋다고 함. 얘 빌드 최상위 파일이 아니라 여기에 하니까 됨!!!!!!!
     kapt("com.google.dagger:hilt-compiler:2.48")
+    kapt(libs.androidx.room.compiler)
     //kapt("androidx.hilt:hilt-compiler:1.1.0")
 
 

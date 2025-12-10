@@ -23,6 +23,7 @@ import java.io.File
 import java.io.FileOutputStream
 import android.content.Context
 import androidx.compose.foundation.background
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -179,7 +180,7 @@ fun SimpleEpubViewerForTest(
                 navigationIcon = {
                     androidx.compose.material3.IconButton(onClick = onBackClick) {
                         androidx.compose.material3.Icon(
-                            androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            Icons.AutoMirrored.Filled.ArrowBack,
                             "뒤로가기",
                             tint = textColor
                         )

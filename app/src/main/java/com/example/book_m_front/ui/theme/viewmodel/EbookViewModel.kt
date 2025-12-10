@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.book_m_front.network.ApiClient
 import com.example.book_m_front.network.ApiService // Retrofit 서비스 import
+import com.example.book_m_front.util.EpubContent
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -14,12 +15,15 @@ class EbookViewModel : ViewModel() {
     val bookContent: StateFlow<String> = _bookContent
 
     private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    var isLoading: StateFlow<Boolean> = _isLoading
 
     private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage: StateFlow<String?> = _errorMessage
+    var errorMessage: StateFlow<String?> = _errorMessage
 
     private val apiService: ApiService = ApiClient.getService() // API 서비스 인스턴스
+
+    var epubContent: EpubContent? = null
+
 
     /**
      * ISBN을 사용하여 백엔드에서 책 본문을 String 형태로 가져옵니다.

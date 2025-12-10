@@ -53,12 +53,25 @@
             </intent-filter>
         </activity>
 
+        <!--이 단락 추가하니까 음악 테스트 코드 종료 안됨!!!-->
+        <service
+            android:name=".ui.theme.musicplayer.MusicService"
+            android:exported="true"
+            android:foregroundServiceType="mediaPlayback">
+
+            <intent-filter>
+                <action android:name="androidx.media3.session.MediaSessionService"/>
+            </intent-filter>
+        </service>
+
         <!-- MediaSession Service (선택사항 - 알림바 컨트롤용) -->
         <service
             android:name="androidx.media3.session.MediaSessionService"
             android:exported="false"
             android:foregroundServiceType="mediaPlayback">
         </service>
+
+
     </application>
 
 </manifest>

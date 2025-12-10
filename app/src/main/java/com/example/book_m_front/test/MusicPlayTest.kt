@@ -86,7 +86,8 @@ fun LocalPlaylistTestScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
             Text("로컬 음악 플레이리스트 테스트", style = MaterialTheme.typography.headlineSmall)
             Spacer(modifier = Modifier.height(24.dp))

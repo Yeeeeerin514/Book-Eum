@@ -1,8 +1,10 @@
 package com.example.book_m_front.ui.theme.musicplayer
 
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
@@ -57,6 +59,7 @@ class MusicService : MediaSessionService() {
     /**
      * MediaSession 초기화
      */
+    @OptIn(UnstableApi::class)
     private fun initializeSession() {
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(MediaSessionCallback())
@@ -85,6 +88,7 @@ class MusicService : MediaSessionService() {
     /**
      * MediaSession 콜백: 외부에서 음악 추가 요청 시 처리
      */
+    @UnstableApi
     private inner class MediaSessionCallback : MediaSession.Callback {
         override fun onAddMediaItems(
             mediaSession: MediaSession,
@@ -97,6 +101,32 @@ class MusicService : MediaSessionService() {
                     .build()
             }
             return Futures.immediateFuture(updatedMediaItems)
+        }
+
+        // ✅ 이 메서드 추가!
+        override fun onPlaybackResumption(
+            mediaSession: MediaSession,
+            controller: MediaSession.ControllerInfo
+        ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+            // 재생 대기열이 비어있으면 빈 결과 반환
+            if (player.mediaItemCount == 0) {
+                return Futures.immediateFuture(
+                    MediaSession.MediaItemsWithStartPosition(emptyList(), 0, 0)
+                )
+            }
+
+            // 현재 재생 목록과 위치 반환
+            val mediaItems = (0 until player.mediaItemCount).map { index ->
+                player.getMediaItemAt(index)
+            }
+
+            return Futures.immediateFuture(
+                MediaSession.MediaItemsWithStartPosition(
+                    mediaItems,
+                    player.currentMediaItemIndex,
+                    player.currentPosition
+                )
+            )
         }
     }
 }

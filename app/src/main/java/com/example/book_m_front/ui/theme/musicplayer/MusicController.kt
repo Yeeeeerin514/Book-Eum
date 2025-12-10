@@ -28,7 +28,8 @@ import javax.inject.Inject
 // ViewModel이나 UI에서 이 클래스의 함수를 호출하면 됩니다.
 
 class MusicController @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val musicDownloader: MusicDownloader  // ✅ 추가
 ) {
     // MediaController: 백그라운드 서비스의 플레이어를 제어하는 컨트롤러
     private var mediaController: MediaController? = null
@@ -124,57 +125,101 @@ class MusicController @Inject constructor(
 
     // 음악 한 곡 재생
     // 사용 예: musicController.playMusic(myTrack)
-    fun playMusic(music: Music) {
-        // MediaItem: ExoPlayer가 이해하는 음악 데이터 형식
-        val mediaItem = MediaItem.Builder()
-            .setUri(music.audioUrl) // 서버 URL 설정 (가장 중요!)
-            .setMediaId(music.id.toString())
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(music.title)        // 곡 제목
-                    .setArtist(music.artist)      // 아티스트
-                    .setArtworkUri(music.albumArtUrl?.toUri()) // 앨범 커버 URL
-                    .build()
-            )
-            .build()
+    suspend fun playMusic(music: Music): Result<Unit> {
+        return try {
+            // 1. 먼저 캐시된 파일이 있는지 확인
+            var localPath = musicDownloader.getCachedFilePath(music)
 
-        // 플레이어에 음악 설정하고 재생
-        mediaController?.apply {
-            setMediaItem(mediaItem) // 음악 설정
-            prepare()                // 재생 준비 (버퍼링 시작)
-            play()                   // 재생 시작
+            // 2. 캐시가 없으면 다운로드
+            if (localPath == null) {
+                val downloadResult = musicDownloader.downloadMusic(music)
+                if (downloadResult.isFailure) {
+                    return Result.failure(downloadResult.exceptionOrNull()!!)
+                }
+                localPath = downloadResult.getOrNull()!!
+            }
+
+            // 3. 로컬 파일로 MediaItem 생성
+            val mediaItem = MediaItem.Builder()
+                .setUri(localPath)  // ✅ 로컬 파일 경로!
+                .setMediaId(music.id.toString())
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(music.title)
+                        .setArtist(music.artist)
+                        .setArtworkUri(music.albumArtUrl?.toUri())
+                        .build()
+                )
+                .build()
+
+            // 4. 재생
+            mediaController?.apply {
+                setMediaItem(mediaItem)
+                prepare()
+                play()
+            }
+
+            _currentMusic.value = music
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-
-        _currentMusic.value = music
     }
 
     // 재생 목록 설정 및 재생
     // 사용 예: musicController.setPlaylist(trackList, startIndex = 2)
     //         → 3번째 곡부터 재생 시작
-    fun setPlaylist(music: List<Music>, startIndex: Int = 0) {
-        // 여러 곡을 MediaItem 리스트로 변환
-        val mediaItems = music.map { track ->
-            MediaItem.Builder()
-                .setUri(track.audioUrl)
-                .setMediaId(track.id.toString())
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(track.title)
-                        .setArtist(track.artist)
-                        .setArtworkUri(track.albumArtUrl?.toUri())
-                        .build()
-                )
-                .build()
-        }
+    suspend fun setPlaylist(musicList: List<Music>, startIndex: Int = 0): Result<Unit> {
+        return try {
+            // 1. 모든 곡 다운로드
+            val localPaths = mutableListOf<String>()
 
-        mediaController?.apply {
-            setMediaItems(mediaItems, startIndex, 0) // 목록 설정
-            prepare()
-            play()
-        }
+            for (music in musicList) {
+                var localPath = musicDownloader.getCachedFilePath(music)
 
-        if (music.isNotEmpty()) {
-            _currentMusic.value = music[startIndex]
+                if (localPath == null) {
+                    val downloadResult = musicDownloader.downloadMusic(music)
+                    if (downloadResult.isFailure) {
+                        // 실패한 곡은 스킵
+                        continue
+                    }
+                    localPath = downloadResult.getOrNull()!!
+                }
+
+                localPaths.add(localPath)
+            }
+
+            // 2. MediaItem 리스트 생성
+            val mediaItems = musicList.zip(localPaths).map { (music, path) ->
+                MediaItem.Builder()
+                    .setUri(path)
+                    .setMediaId(music.id.toString())
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(music.title)
+                            .setArtist(music.artist)
+                            .setArtworkUri(music.albumArtUrl?.toUri())
+                            .build()
+                    )
+                    .build()
+            }
+
+            // 3. 재생
+            mediaController?.apply {
+                setMediaItems(mediaItems, startIndex, 0)
+                prepare()
+                play()
+            }
+
+            if (musicList.isNotEmpty()) {
+                _currentMusic.value = musicList[startIndex]
+            }
+
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            Result.failure(e)
         }
     }
 
