@@ -4,6 +4,7 @@ import BukkeuBukkeu.Book_Eum.domain.book.Chapter;
 import BukkeuBukkeu.Book_Eum.domain.book.ChapterAnalysis;
 import BukkeuBukkeu.Book_Eum.dto.book.ChapterAnalyzeResponse;
 import BukkeuBukkeu.Book_Eum.repository.ChapterRepository;
+import BukkeuBukkeu.Book_Eum.service.music.AIMusicGenerateService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 public class ChapterAnalysisCallbackService {
 
     private final ChapterRepository chapterRepository;
+    private final AIMusicGenerateService aiMusicGenerateService;
 
     /**
      * AI 서버가 보내 준 한 챕터 분석 결과를
@@ -43,7 +45,13 @@ public class ChapterAnalysisCallbackService {
                 .build();
 
         chapterRepository.save(chapter);
+        chapterRepository.flush();
 
         log.info("[BookAnalysis] 챕터 분석 저장 완료 isbn={} chapter={}", isbn, chapterNum);
+
+        // 이 챕터에 대해 AI에게 음악 분석 요청
+        aiMusicGenerateService.requestGenerateMusicAsync(isbn, chapterNum);
+
+        // 위에거 지우고, 분석 결과를 다 하나하나 버퍼에 저장해야....
     }
 }
