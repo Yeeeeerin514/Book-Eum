@@ -64,6 +64,9 @@ def handle_generate_music(req: MusicGenerationRequest):
         # 3. 음악 메타데이터 생성
         # (HTTP 헤더에는 한글이나 특수문자가 들어가면 안 되므로 URL Encoding 필수)
         metadata = {
+            "isbn": req.isbn,
+            "chapter_number": req.chapter_number,
+            "main_mood": req.main_mood,
             "final_prompt": final_prompt,
             "selected_genres": prompt_result["selected_genres"],
             "selected_instruments": prompt_result["selected_instruments"],
