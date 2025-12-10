@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.book_m_front.network.dto.Music
+import com.example.book_m_front.ui.theme.viewmodel.MusicPlayerViewModel
 
 // ============================================
 // 6. UI - Jetpack Compose

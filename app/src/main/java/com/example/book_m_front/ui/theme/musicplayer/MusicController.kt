@@ -60,7 +60,10 @@ class MusicController @Inject constructor(
     }
 
     // MediaController 초기화 - 백그라운드 서비스와 연결
-    private fun initializeController() {
+    fun initializeController() {    //private->public으로 변경. MusicPlayerModule에서 사용하기 위함.
+        // 이미 초기화되었다면 다시 하지 않음
+        if (mediaController != null) return
+
         // 서비스 토큰 생성 (어떤 서비스에 연결할지 지정)
         val sessionToken = SessionToken(
             context,

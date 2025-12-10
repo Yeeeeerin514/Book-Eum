@@ -22,6 +22,8 @@ import com.example.book_m_front.ui.theme.ui_resource.Book_M_FrontTheme
 import androidx.navigation.compose.composable
 import com.example.book_m_front.navigation.AppNavigation
 import com.example.book_m_front.navigation.Screen
+import com.example.book_m_front.test.LocalEpubViewerTestScreen
+import com.example.book_m_front.test.LocalPlaylistTestScreen
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint // ✨ 2. 이 어노테이션을 클래스 위에 추가합니다.
@@ -32,6 +34,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             Book_M_FrontTheme {
                 AppNavigation()  // 이것만 호출하면 됨!
+                //LocalEpubViewerTestScreen()
+                //LocalPlaylistTestScreen()
             }
         }
     }

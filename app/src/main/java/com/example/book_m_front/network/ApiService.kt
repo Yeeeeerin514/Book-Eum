@@ -1,6 +1,5 @@
 package com.example.book_m_front.network
 
-import com.example.book_m_front.network.ServerRequestAndResponse.BookUploadResponse
 import com.example.book_m_front.network.dto.*
 import okhttp3.MultipartBody
 import okhttp3.RequestBody

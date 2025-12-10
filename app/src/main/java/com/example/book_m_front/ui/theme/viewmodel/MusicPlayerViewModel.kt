@@ -1,273 +1,212 @@
 package com.example.book_m_front.ui.theme.viewmodel
 
-import android.app.Application
-import android.content.Context
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
-import androidx.media3.exoplayer.ExoPlayer
-import com.example.book_m_front.network.downloadMusicAndGetPath
 import com.example.book_m_front.network.dto.Music
+import com.example.book_m_front.ui.theme.musicplayer.MusicController
+import com.example.book_m_front.ui.theme.musicplayer.MusicRepository
+import com.example.book_m_front.ui.theme.musicplayer.NetworkResult
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+
 
 /**
- * 음악 재생을 관리하는 ViewModel
- * ExoPlayer를 사용하여 실제 음악 재생 기능 구현
+ * 🎵 음악 재생을 관리하는 통합 ViewModel
+ *
+ * 이 ViewModel은:
+ * - MusicController를 통해 실제 음악 재생을 제어합니다
+ * - MusicRepository를 통해 서버에서 플레이리스트를 가져옵니다
+ * - UI에 필요한 상태(재생중/일시정지, 진행률 등)를 제공합니다
  */
-class MusicPlayerViewModel(application: Application) : AndroidViewModel(application) {
-    // ExoPlayer 인스턴스
-    private var exoPlayer: ExoPlayer? = null
+@HiltViewModel
+class MusicPlayerViewModel @Inject constructor(
+    private val musicController: MusicController,
+    private val musicRepository: MusicRepository
+) : ViewModel() {
 
-    // 현재 재생 상태
-    private val _playerState = MutableStateFlow(PlayerState())
-    val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
+    // ========================================
+    // MusicController의 상태들을 UI에 노출
+    // ========================================
 
-    // 플레이리스트
+    // 플레이어 상태 (Idle, Buffering, Ready, Ended)
+    val playerState = musicController.playerState
+
+    // 현재 재생 위치 (밀리초)
+    val currentPosition = musicController.currentPosition
+
+    // 총 재생 시간 (밀리초)
+    val duration = musicController.duration
+
+    // 재생 중인지 여부
+    val isPlaying = musicController.isPlaying
+
+    // 현재 재생 중인 트랙
+    val currentTrack = musicController.currentMusic
+
+    // ========================================
+    // 플레이리스트 관리
+    // ========================================
+
+    // 현재 플레이리스트
     private val _playlist = MutableStateFlow<List<Music>>(emptyList())
     val playlist: StateFlow<List<Music>> = _playlist.asStateFlow()
 
-    // 현재 재생 중인 트랙 인덱스
-    private val _currentTrackIndex = MutableStateFlow(0)
-    val currentTrackIndex: StateFlow<Int> = _currentTrackIndex.asStateFlow()
+    // 로딩 상태
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
-    // 현재 트랙
-    val currentTrack: Music?
-        get() = _playlist.value.getOrNull(_currentTrackIndex.value)
+    // 에러 메시지
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    // 재생 진행 상태 (0.0 ~ 1.0)
-    private val _progress = MutableStateFlow(0f)
-    val progress: StateFlow<Float> = _progress.asStateFlow()
+    init {
+        // ViewModel이 생성될 때 자동으로 플레이리스트 로드 (선택적)
+        // loadPlaylist()
+    }
 
-    // 현재 재생 시간 (초)
-    private val _currentPosition = MutableStateFlow(0L)
-    val currentPosition: StateFlow<Long> = _currentPosition.asStateFlow()
-
-    // 총 재생 시간 (초)
-    private val _duration = MutableStateFlow(0L)
-    val duration: StateFlow<Long> = _duration.asStateFlow()
-
-
-
-    private val _isPreparing = MutableStateFlow(false)
-    val isPreparing: StateFlow<Boolean> = _isPreparing
-
+    // ========================================
+    // 서버에서 플레이리스트 가져오기
+    // ========================================
 
     /**
-     * ExoPlayer 초기화
+     * 서버에서 플레이리스트를 가져옵니다
      */
-    fun initializePlayer(context: Context) {
-        if (exoPlayer == null) {
-            exoPlayer = ExoPlayer.Builder(context).build().apply {
-                // Player 이벤트 리스너 등록
-                addListener(object : Player.Listener {
-                    override fun onPlaybackStateChanged(playbackState: Int) {
-                        _playerState.value = _playerState.value.copy(
-                            isBuffering = playbackState == Player.STATE_BUFFERING
-                        )
-                    }
+    fun loadPlaylist() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
 
-                    override fun onIsPlayingChanged(isPlaying: Boolean) {
-                        _playerState.value = _playerState.value.copy(
-                            isPlaying = isPlaying
-                        )
-                    }
-                })
-
-                // 재생 위치 업데이트를 위한 코루틴
-                viewModelScope.launch {
-                    while (true) {
-                        exoPlayer?.let { player ->
-                            val position = player.currentPosition / 1000 // 밀리초 -> 초
-                            val totalDuration = player.duration / 1000
-
-                            _currentPosition.value = position
-                            _duration.value = if (totalDuration > 0) totalDuration else 0
-
-                            if (totalDuration > 0) {
-                                _progress.value = position.toFloat() / totalDuration.toFloat()
-                            }
+            try {
+                musicRepository.getPlaylist().collect { result ->
+                    when (result) {
+                        is NetworkResult.Success -> {
+                            _playlist.value = result.data ?: emptyList()
+                            _isLoading.value = false
                         }
-                        kotlinx.coroutines.delay(500) // 0.5초마다 업데이트
+                        is NetworkResult.Error -> {
+                            _errorMessage.value = result.message ?: "플레이리스트를 불러올 수 없습니다"
+                            _isLoading.value = false
+                        }
+                        is NetworkResult.Loading -> {
+                            _isLoading.value = true
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                _errorMessage.value = "오류가 발생했습니다: ${e.message}"
+                _isLoading.value = false
             }
         }
     }
 
+    // ========================================
+    // 테스트용: 직접 플레이리스트 설정
+    // ========================================
+
     /**
-     * 플레이리스트 설정
+     * 플레이리스트를 직접 설정합니다 (테스트용)
      */
-    // setPlaylist 함수를 아래와 같이 수정 또는 교체
-    fun setPlaylist(playlist: List<Music>) { // DTO의 Music 클래스
-        viewModelScope.launch {
-            _isPreparing.value = true
-            _playlist.value = playlist
-            exoPlayer?.clearMediaItems()
+    fun setPlaylist(playlist: List<Music>) {
+        _playlist.value = playlist
+    }
 
-            val context = getApplication<Application>().applicationContext
-            val mediaItems = mutableListOf<MediaItem>()
-
-            // 각 트랙에 대해 다운로드를 시도하고 MediaItem을 생성
-            playlist.forEach { music ->
-                // 1. 서버에서 음악 파일을 다운로드하고 로컬 경로를 얻어옴
-                val localMusicPath = downloadMusicAndGetPath(context, music.id) // DTO에 musicId가 있어야 함
-
-                if (localMusicPath != null) {
-                    // 2. 다운로드 성공 시, 로컬 파일 경로를 Uri로 MediaItem 생성
-                    val mediaItem = MediaItem.Builder()
-                        .setUri(localMusicPath) // ✨ 로컬 파일 경로 사용
-                        .setMediaMetadata(
-                            MediaMetadata.Builder()
-                                .setTitle(music.title)
-                                .setArtist(music.artist)
-                                .build()
-                        )
-                        .build()
-                    mediaItems.add(mediaItem)
-                } else {
-                    println("음악 파일 준비 실패: ${music.title}")
-                    // 실패 처리: 예) 플레이리스트에서 제외하거나, 에러 상태 표시
-                }
-            }
-
-            exoPlayer?.addMediaItems(mediaItems)
-            exoPlayer?.prepare()
-            _isPreparing.value = false
-        }
-    }/*
-    fun setPlaylist(musicList: List<Music>, startIndex: Int = 0) {
-        _playlist.value = musicList
-        _currentTrackIndex.value = startIndex
-
-        // ExoPlayer에 미디어 아이템 추가
-        exoPlayer?.let { player ->
-            player.clearMediaItems()
-            musicList.forEach { music ->
-                val mediaItem = MediaItem.fromUri(music.audioUrl)
-                player.addMediaItem(mediaItem)
-            }
-            player.seekTo(startIndex, 0)
-            player.prepare()
-            player.playWhenReady = true
-        }
-    }*/
+    // ========================================
+    // UI에서 호출할 재생 제어 함수들
+    // ========================================
 
     /**
-     * 재생/일시정지 토글
+     * 특정 곡을 재생합니다
+     */
+    fun playTrack(music: Music) {
+        musicController.playMusic(music)
+    }
+
+    /**
+     * 플레이리스트를 설정하고 재생합니다
+     * @param musicList 재생할 음악 리스트
+     * @param startIndex 시작할 곡의 인덱스 (기본값: 0)
+     */
+    fun playPlaylist(musicList: List<Music>, startIndex: Int = 0) {
+        musicController.setPlaylist(musicList, startIndex)
+    }
+
+    /**
+     * 재생/일시정지를 토글합니다
      */
     fun togglePlayPause() {
-        exoPlayer?.let { player ->
-            if (player.isPlaying) {
-                player.pause()
-            } else {
-                player.play()
-            }
+        if (isPlaying.value) {
+            musicController.pause()
+        } else {
+            musicController.play()
         }
     }
 
     /**
-     * 재생
+     * 재생을 시작합니다
      */
     fun play() {
-        exoPlayer?.play()
+        musicController.play()
     }
 
     /**
-     * 일시정지
+     * 일시정지합니다
      */
     fun pause() {
-        exoPlayer?.pause()
+        musicController.pause()
     }
 
     /**
-     * 다음 곡
+     * 특정 위치로 이동합니다
+     * @param position 이동할 위치 (밀리초)
      */
-    fun playNext() {
-        exoPlayer?.let { player ->
-            if (player.hasNextMediaItem()) {
-                player.seekToNext()
-                _currentTrackIndex.value = player.currentMediaItemIndex
-            }
-        }
+    fun seekTo(position: Long) {
+        musicController.seekTo(position)
     }
 
     /**
-     * 이전 곡
+     * 15초 앞으로 이동합니다
      */
-    fun playPrevious() {
-        exoPlayer?.let { player ->
-            if (player.hasPreviousMediaItem()) {
-                player.seekToPrevious()
-                _currentTrackIndex.value = player.currentMediaItemIndex
-            }
-        }
+    fun seekForward() {
+        musicController.seekForward()
     }
 
     /**
-     * 특정 트랙으로 이동
+     * 15초 뒤로 이동합니다
      */
-    fun playTrackAt(index: Int) {
-        if (index in _playlist.value.indices) {
-            exoPlayer?.seekTo(index, 0)
-            _currentTrackIndex.value = index
-            exoPlayer?.play()
-        }
+    fun seekBackward() {
+        musicController.seekBackward()
     }
 
     /**
-     * 특정 위치로 이동 (초 단위)
+     * 다음 곡으로 이동합니다
      */
-    fun seekTo(positionSeconds: Long) {
-        exoPlayer?.seekTo(positionSeconds * 1000)
+    fun skipToNext() {
+        musicController.skipToNext()
     }
 
     /**
-     * 진행률로 이동 (0.0 ~ 1.0)
+     * 이전 곡으로 이동합니다
      */
-    fun seekToProgress(progress: Float) {
-        exoPlayer?.let { player ->
-            val position = (player.duration * progress).toLong()
-            player.seekTo(position)
-        }
+    fun skipToPrevious() {
+        musicController.skipToPrevious()
     }
 
-    /**
-     * 반복 모드 설정
-     */
-    fun setRepeatMode(repeatMode: Int) {
-        exoPlayer?.repeatMode = repeatMode
-    }
+    // ========================================
+    // 리소스 정리
+    // ========================================
 
     /**
-     * 셔플 모드 설정
-     */
-    fun setShuffleModeEnabled(enabled: Boolean) {
-        exoPlayer?.shuffleModeEnabled = enabled
-    }
-
-    /**
-     * 리소스 해제
+     * ViewModel이 파괴될 때 플레이어 리소스를 정리합니다
      */
     override fun onCleared() {
         super.onCleared()
-        exoPlayer?.release()
-        exoPlayer = null
+        musicController.release()
     }
 }
-
-/**
- * 플레이어 상태를 나타내는 데이터 클래스
- */
-data class PlayerState(
-    val isPlaying: Boolean = false,
-    val isBuffering: Boolean = false,
-    val error: String? = null
-)
 
 /**
  * 재생 시간을 포맷하는 헬퍼 함수

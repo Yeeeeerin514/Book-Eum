@@ -152,7 +152,7 @@ data class BookDownloadResponse(
 /**
  * 책 업로드 응답
  */
-data class BookloadResponse(
+data class BookUploadResponse(
     val success: Boolean,
     val message: String,
     val bookId: String? = null,
