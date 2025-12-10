@@ -4,9 +4,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 
     // ✨ 핵심 1: Kapt 플러그인 적용 (없으면 kapt 종속성 정의 오류)
-    id("kotlin-kapt")
+    //id("kotlin-kapt")
     // ✨ 핵심 2: Hilt 플러그인 적용 (Hilt DI 코드를 생성하기 위해 필요)
-    //id("com.google.dagger.hilt.android")
+
+    // 1. Kapt 플러그인 (필수)
+    kotlin("kapt")
+
+    // 2. Hilt 플러그인 (필수)
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -33,11 +38,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -99,7 +104,9 @@ dependencies {
 
     // Hilt: 의존성 주입 라이브러리 (자동으로 객체 생성/관리)
     implementation("com.google.dagger:hilt-android:2.48")
-    //kapt("com.google.dagger:hilt-compiler:2.48")
+    implementation("androidx.hilt:hilt-navigation-compose:1.1.0")  // ✅ 추가!
+    //kotlin("kapt")  //hilt플러그인은 얘 뒤에 하는게 좋다고 함. 얘 빌드 최상위 파일이 아니라 여기에 하니까 됨!!!!!!!
+    kapt("com.google.dagger:hilt-compiler:2.48")
     //kapt("androidx.hilt:hilt-compiler:1.1.0")
 
 
@@ -135,4 +142,8 @@ dependencies {
     implementation("org.slf4j:slf4j-simple:1.7.32")
 
 
+}
+
+kapt {
+    correctErrorTypes = true
 }
