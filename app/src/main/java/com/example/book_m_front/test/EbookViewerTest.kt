@@ -18,25 +18,22 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.book_m_front.ui.theme.ui.EbookViewerWithMusicScreen // EbookViewerWithMusic의 실제 경로로 수정하세요
-import com.example.book_m_front.ui.theme.viewmodel.EbookViewModel
+import com.example.book_m_front.ui.theme.ui.EbookViewerWithMusicScreen
 import java.io.File
 import java.io.FileOutputStream
 import android.content.Context
-import com.example.book_m_front.ui.theme.viewmodel.MusicPlayerViewModel
-
+import androidx.compose.foundation.background
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material3.ExperimentalMaterial3Api
+import com.example.book_m_front.util.SafeEpubParser
 
 fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): String? {
     return try {
-        // 앱 내부 캐시 디렉터리에 파일을 생성합니다.
         val cacheDir = context.cacheDir
         val file = File(cacheDir, fileName)
 
-        // ContentResolver를 사용하여 URI로부터 InputStream을 엽니다.
         val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-
-        // InputStream에서 읽은 데이터를 파일에 씁니다.
         val outputStream = FileOutputStream(file)
         inputStream.use { input ->
             outputStream.use { output ->
@@ -44,7 +41,6 @@ fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): Stri
             }
         }
 
-        // 생성된 파일의 절대 경로를 반환합니다.
         file.absolutePath
     } catch (e: Exception) {
         e.printStackTrace()
@@ -53,18 +49,16 @@ fun copyUriToInternalStorage(context: Context, uri: Uri, fileName: String): Stri
 }
 
 /**
- * 로컬 EPUB 파일을 EbookViewerWithMusic 컴포저블로 띄우는 테스트용 화면입니다.
+ * ✅ 수정: Hilt 없이 테스트할 수 있는 버전
+ *
+ * 로컬 EPUB 파일을 EbookViewerWithMusic 컴포저블로 테스트하는 화면입니다.
+ * 음악 플레이어 기능은 제외하고 EPUB 뷰어만 테스트합니다.
  */
 @Composable
 fun LocalEpubViewerTestScreen() {
-    // 1. 상태 관리
-    // 선택된 EPUB 파일의 경로(Uri)를 저장하는 상태 변수
-    var selectedEpubUri by remember { mutableStateOf<Uri?>(null) }
-    var realFilePath by remember { mutableStateOf<String?>(null) } // 1. 파일 경로를 저장할 상태 변수 변경
+    var realFilePath by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    // 2. 파일 선택기 (Launcher)
-    // 사용자가 문서를 선택하면 그 결과(Uri)를 받아 selectedEpubUri 상태를 업데이트합니다.
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
@@ -74,41 +68,37 @@ fun LocalEpubViewerTestScreen() {
                 if (realFilePath == null) {
                     Toast.makeText(context, "파일을 읽어오는 데 실패했습니다.", Toast.LENGTH_SHORT).show()
                 }
-                //selectedEpubUri = uri
-                // EPUB 파일인지 간단히 확인 (더 정확한 MIME 타입 확인이 필요할 수 있음)
-                /*if (uri.path?.endsWith(".epub") == true) {
-                    selectedEpubUri = uri
-                } else {
-                    Toast.makeText(context, "EPUB 파일만 선택 가능합니다.", Toast.LENGTH_SHORT).show()
-                }*/
             }
         }
     )
 
-    // 3. UI 렌더링
+    // 권한 요청
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (!isGranted) {
+            Toast.makeText(context, "파일 접근 권한이 필요합니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            permissionLauncher.launch(android.Manifest.permission.READ_MEDIA_AUDIO)
+        } else {
+            permissionLauncher.launch(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+    }
+
     Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-        // 선택된 파일이 있으면 EbookViewerWithMusic를 보여주고, 없으면 파일 선택 버튼을 보여줍니다.
         if (realFilePath != null) {
-            // EbookViewerWithMusic에 필요한 ViewModel들을 생성합니다.
-            val ebookViewModel: EbookViewModel = viewModel()
-            val musicPlayerViewModel: MusicPlayerViewModel = viewModel()
-
-            // 파일 URI에서 실제 파일 경로(String)를 추출합니다.
-            // EbookViewerWithMusic가 String 타입의 경로를 받는다고 가정합니다.
-            val filePath = selectedEpubUri!!.toString() // Content URI를 문자열로 전달
-
-            EbookViewerWithMusicScreen(
-                bookTitle = "로컬 테스트 책",
-                bookAuthor = "테스터",
-                bookIsbn = "000-000-000",
+            // ✅ 수정: Hilt 없이 동작하도록 간단한 뷰어만 표시
+            SimpleEpubViewerForTest(
                 testFilePath = realFilePath!!,
                 onBackClick = {
-                    // 뒤로가기 버튼을 누르면 파일 선택 화면으로 돌아갑니다.
                     realFilePath = null
-                },
+                }
             )
         } else {
-            // 파일 선택 화면
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
@@ -117,10 +107,164 @@ fun LocalEpubViewerTestScreen() {
                     Text("테스트할 EPUB 파일을 선택하세요.")
                     Spacer(modifier = Modifier.height(16.dp))
                     Button(onClick = {
-                        // "application/epub+zip" MIME 타입을 사용하여 EPUB 파일만 필터링합니다.
                         filePickerLauncher.launch(arrayOf("application/epub+zip"))
                     }) {
                         Text("EPUB 파일 선택하기")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * ✅ 새로 추가: 음악 플레이어 없이 EPUB만 표시하는 간단한 뷰어
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SimpleEpubViewerForTest(
+    testFilePath: String,
+    onBackClick: () -> Unit
+) {
+    val context = LocalContext.current
+    var epubContent by remember { mutableStateOf<com.example.book_m_front.util.EpubContent?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var currentChapterIndex by remember { mutableStateOf(0) }
+    var fontSize by remember { mutableStateOf(16) }
+    var isDarkMode by remember { mutableStateOf(false) }
+
+    // EPUB 파일 파싱
+    LaunchedEffect(testFilePath) {
+        isLoading = true
+        errorMessage = null
+        try {
+            epubContent = SafeEpubParser.parseEpub(
+                context,
+                testFilePath
+            )
+        } catch (e: Exception) {
+            errorMessage = "오류가 발생했습니다: ${e.message}"
+            e.printStackTrace()
+        } finally {
+            isLoading = false
+        }
+    }
+
+    val backgroundColor = if (isDarkMode) androidx.compose.ui.graphics.Color(0xFF1A1A1A)
+    else androidx.compose.ui.graphics.Color(0xFFFFFBF5)
+    val textColor = if (isDarkMode) androidx.compose.ui.graphics.Color(0xFFE0E0E0)
+    else androidx.compose.ui.graphics.Color(0xFF2C2C2C)
+
+    androidx.compose.material3.Scaffold(
+        topBar = {
+            androidx.compose.material3.TopAppBar(
+                title = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = epubContent?.title ?: "로컬 테스트 책",
+                            color = textColor
+                        )
+                        if (epubContent != null && epubContent!!.chapters.isNotEmpty()) {
+                            Text(
+                                text = "${currentChapterIndex + 1} / ${epubContent!!.chapters.size}",
+                                color = textColor.copy(alpha = 0.6f),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+                },
+                navigationIcon = {
+                    androidx.compose.material3.IconButton(onClick = onBackClick) {
+                        androidx.compose.material3.Icon(
+                            androidx.compose.material.icons.Icons.Default.ArrowBack,
+                            "뒤로가기",
+                            tint = textColor
+                        )
+                    }
+                },
+                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
+                    containerColor = backgroundColor
+                )
+            )
+        }
+    ) { padding ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .background(backgroundColor)
+        ) {
+            when {
+                isLoading -> {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center)
+                    )
+                }
+                errorMessage != null -> {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(errorMessage!!, color = androidx.compose.ui.graphics.Color.Red)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(onClick = onBackClick) {
+                            Text("돌아가기")
+                        }
+                    }
+                }
+                epubContent != null -> {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        // 본문
+                        Box(modifier = Modifier.weight(1f)) {
+                            com.example.book_m_front.ui.theme.ui.ImprovedEbookContent(
+                                chapter = epubContent!!.chapters.getOrNull(currentChapterIndex),
+                                fontSize = fontSize,
+                                textColor = textColor,
+                                backgroundColor = backgroundColor,
+                                onPreviousChapter = {
+                                    if (currentChapterIndex > 0) {
+                                        currentChapterIndex--
+                                    }
+                                },
+                                onNextChapter = {
+                                    if (currentChapterIndex < epubContent!!.chapters.size - 1) {
+                                        currentChapterIndex++
+                                    }
+                                }
+                            )
+                        }
+
+                        // 네비게이션 버튼
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Button(
+                                onClick = { if (currentChapterIndex > 0) currentChapterIndex-- },
+                                enabled = currentChapterIndex > 0
+                            ) {
+                                Text("이전")
+                            }
+                            Text(
+                                "${currentChapterIndex + 1} / ${epubContent!!.chapters.size}",
+                                modifier = Modifier.align(Alignment.CenterVertically)
+                            )
+                            Button(
+                                onClick = {
+                                    if (currentChapterIndex < epubContent!!.chapters.size - 1) {
+                                        currentChapterIndex++
+                                    }
+                                },
+                                enabled = currentChapterIndex < epubContent!!.chapters.size - 1
+                            ) {
+                                Text("다음")
+                            }
+                        }
                     }
                 }
             }

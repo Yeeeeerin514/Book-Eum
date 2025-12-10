@@ -33,8 +33,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Book_M_FrontTheme {
-                AppNavigation()  // 이것만 호출하면 됨!
-                //LocalEpubViewerTestScreen()
+                //AppNavigation()  // 이것만 호출하면 됨!
+                LocalEpubViewerTestScreen()
                 //LocalPlaylistTestScreen()
             }
         }

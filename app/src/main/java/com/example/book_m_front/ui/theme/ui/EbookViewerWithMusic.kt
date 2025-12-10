@@ -40,6 +40,7 @@ import kotlinx.coroutines.launch
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
+import com.example.book_m_front.util.SafeEpubParser
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -92,13 +93,13 @@ fun EbookViewerWithMusicScreen(
             try {
                 // 테스트 파일이 있으면 테스트 파일 사용
                 if (testFilePath != null) {
-                    epubContent = SimpleEpubParser.parseEpub(context, testFilePath)
+                    epubContent = SafeEpubParser.parseEpub(context, testFilePath)
                 } else {
                     // 서버에서 EPUB 파일 다운로드
                     val localBookPath = downloadAndGetBookPath(context, bookIsbn)
 
                     if (localBookPath != null) {
-                        epubContent = SimpleEpubParser.parseEpub(context, localBookPath)
+                        epubContent = SafeEpubParser.parseEpub(context, localBookPath)
                     } else {
                         errorMessage = "책 파일을 불러오는 데 실패했습니다."
                     }
