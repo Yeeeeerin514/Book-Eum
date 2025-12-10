@@ -30,9 +30,12 @@ public class Book {
     @Column(nullable = false, length = 500, name = "epub_file_url")
     private String epubFilePath;
 
+    @Column(name = "total_chapters")
+    private Integer totalChapters;
+
     @Enumerated(EnumType.STRING) // DB에 문자열로 저장
     @Column(nullable = false, name = "analysis_status")
-    private AnalysisStatus analysisStatus = AnalysisStatus.PENDING;
+    private Status status = Status.NOT_REQUESTED;
 
     @Builder
     public Book(String isbn,
@@ -47,8 +50,38 @@ public class Book {
         this.epubFilePath = epubFilePath;
     }
 
-    // 분석 결과 업데이트
-    public void updateAnalysisStatus(AnalysisStatus analysisStatus){
-        this.analysisStatus = analysisStatus;
+    // 총 챕터 개수 설정
+    public void updateTotalChapters(Integer totalChapters) {
+        this.totalChapters = totalChapters;
+    }
+
+    // 내용분석 진행중
+    public void markAnalysisProcessing() {
+        this.status = Status.ANALYSIS_PROCESSING;
+    }
+
+    // 내용분석 완료
+    public void markAnalysisCompleted() {
+        this.status = Status.ANALYSIS_COMPLETED;
+    }
+
+    // 내용분석 실패
+    public void markAnalysisFailed() {
+        this.status = Status.ANALYSIS_FAILED;
+    }
+
+    // 음악생성 진행중
+    public void markGenerationProcessing() {
+        this.status = Status.GENERATION_PROCESSING;
+    }
+
+    // 음악생성 실패
+    public void markGenerationFailed() {
+        this.status = Status.GENERATION_FAILED;
+    }
+
+    // 내용분석 & 음악생성 완료
+    public void markCompleted() {
+        this.status = Status.COMPLETED;
     }
 }

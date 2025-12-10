@@ -54,20 +54,17 @@ public class BookController {
     }
 
     /**
-     * 도서 내용 분석 요청 API
-     * PathVariable: isbn
-     * RequestBody: BookAnalyzeRequest (epubFileUrl은 중간 발표에서는 무시)
+     * 도서 분석 완료
+     * - AI 서버가 "모든 챕터 분석을 완료했다"는 메타데이터 콜백 엔드포인트
+     * - AI 서버에서 POST /books/analyze 로 호출
      */
-    @PostMapping("/{isbn}/analyze")
-    public ResponseEntity<BookAnalyzeResponse> analyzeBook(
-            @PathVariable String isbn,
-            @RequestBody(required = false) BookAnalyzeRequest request
-    ) {
-
-        // 중간 발표에서는 request.epubFileUrl은 사용 안 하고 로컬 파일 사용
-        BookAnalyzeResponse response = bookAnalysisService.analyzeBook(isbn);
-        return ResponseEntity.ok(response);
-    }
+//    @PostMapping("/analyze")
+//    public ResponseEntity<Void> responseBookAnalysisMeta(
+//            @RequestBody BookAnalyzeResponse meta
+//    ) {
+//        bookAnalysisService.responseAnalysisCallback(meta);
+//        return ResponseEntity.ok().build();
+//    }
 
     /**
      * 도서 삭제

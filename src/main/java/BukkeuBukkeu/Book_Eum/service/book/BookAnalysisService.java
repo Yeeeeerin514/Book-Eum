@@ -1,66 +1,119 @@
 package BukkeuBukkeu.Book_Eum.service.book;
 
-import BukkeuBukkeu.Book_Eum.domain.Book;
-import BukkeuBukkeu.Book_Eum.external.FastApiAnalysis;
-import BukkeuBukkeu.Book_Eum.dto.book.AnalysisResult;
+import BukkeuBukkeu.Book_Eum.domain.book.Book;
+import BukkeuBukkeu.Book_Eum.dto.book.BookAnalyzeRequest;
 import BukkeuBukkeu.Book_Eum.dto.book.BookAnalyzeResponse;
 import BukkeuBukkeu.Book_Eum.repository.BookRepository;
+import lombok.Builder;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
-import java.nio.file.Paths;
+// 도서 신규 등록 후 -> AI에 분석 요청
+// AI의 분석 응답을 기다리지 않고 비동기 실행
 
-// 도서 있는지 조회 → 외부(AI)에 분석 요청 → 도서 엔티티 업데이트
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookAnalysisService {
 
+    private final RestTemplate restTemplate;
     private final BookRepository bookRepository;
-    private final FastApiAnalysis fastApiAnalysis;
 
-    // 로컬 EPUB 파일들이 모여있는 디렉토리 (중간발표용)
-    @Value("${analysis.local-epub-dir:/Users/luna/CAU/2025-2/Capston Design 1/epub 파일}")
-    private String localEpubDir;
+    @Value("${ai.base-url}")
+    private String aiBaseUrl;
 
+    @Value("${ai.analysis.request:/books/analyze}")
+    private String analyzePath;
+
+    /**
+     * Book 등록이 끝난 뒤 비동기로 호출되는 메서드
+     * - AI 서버에 "책 한 권 분석 시작해줘" 요청만 보냄
+     * - AI는 이후에 챕터별 분석 결과를 콜백 API로 보내줌
+     */
+    @Async
     @Transactional
-    public BookAnalyzeResponse analyzeBook(String isbn) {
+    public void requestAnalysisAsync(Book book) {
+
+        String isbn = book.getIsbn();
+
+        // 1. 상태를 ANALYSIS_PROCESSING 으로 변경
+        book.markAnalysisProcessing();
+        // book 이 영속 상태이면 별도 save() 필요 없음. (아니면 bookRepository.save(book))
+
+        // 2. 요청 DTO 구성
+        BookAnalyzeRequest request = new BookAnalyzeRequest(
+                isbn,
+                book.getEpubFilePath()  // 로컬 파일 경로
+        );
+
+        String url = aiBaseUrl + analyzePath;
+        log.info("[BookAnalysis] AI 분석 요청 url={} isbn={}", url, isbn);
+
+        try {
+            BookAnalyzeResponse meta = restTemplate.postForObject(
+                    url,
+                    request,
+                    BookAnalyzeResponse.class
+            );
+            log.info("[BookAnalysis] AI 분석 요청 성공 isbn={}", isbn);
+
+            if (meta != null) {
+                responseAnalysisCallback(meta);
+            } else {
+                log.warn("[BookAnalysis] 메타데이터 응답이 null 입니다. isbn={}", isbn);
+            }
+
+        } catch (Exception e) {
+            log.error("[BookAnalysis] AI 분석 요청 실패 isbn={}", isbn, e);
+            // 실패 시 상태를 실패로 바꾸고 싶다면:
+            book.markAnalysisFailed();
+        }
+    }
+
+    /**
+     * AI 서버가 모든 챕터 분석한 후 메타데이터를 콜백하는 메서드
+     * - /books/analyze 엔드포인트에서 호출
+     */
+    @Transactional
+    public void responseAnalysisCallback(BookAnalyzeResponse metadata) {
+
+        String isbn = metadata.getIsbn();
+        Integer totalChapters = metadata.getTotalChapters();
+        String statusFromAi = metadata.getStatus();
+
+        log.info("[BookAnalysis] 메타데이터 콜백 수신 isbn={} status={} totalChapters={}",
+                isbn, statusFromAi, totalChapters);
 
         Book book = bookRepository.findById(isbn)
-                .orElseThrow(() -> new IllegalArgumentException("Book not found: " + isbn));
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "메타데이터 콜백: 존재하지 않는 ISBN 입니다. isbn=" + isbn));
 
-        // 1. 로컬 EPUB 경로 결정
-        String epubPath;
-        if (book.getEpubFileUrl() != null && !book.getEpubFileUrl().isBlank()) {
-            // 신규 도서 등록 시에 이미 저장해 둔 경우
-            epubPath = book.getEpubFileUrl();
-        } else {
-            // 간단 버전: 디렉토리 + isbn.epub 규칙
-            epubPath = Paths.get(localEpubDir, isbn + ".epub").toString();
+        // 1) totalChapters 업데이트
+        if (totalChapters != null) {
+            book.updateTotalChapters(totalChapters);
         }
 
-        // 2. FastAPI 서버 호출
-        AnalysisResult result = fastApiAnalysis.analyze(epubPath);
+        // 2) AI status 값에 따라 Book.status 변경
+        if (statusFromAi != null) {
 
-        // 3. 분석 결과를 Book 엔티티에 반영
-        book.markAsAnalyzed(true);
-
-        // genres/emotions는 배열이므로 단순히 join해서 String으로 저장
-        if (result.getEmotions() != null) { // 일단, 중간 발표는 단일 챕터 도서이므로 emotion = genre라고 생각
-            book.updateGenres(String.join(", ", result.getGenres()));
+            if (statusFromAi.equals("success")) {
+                book.markAnalysisCompleted();
+            } else if (statusFromAi.equals("fail")) {
+                book.markAnalysisFailed();
+            } else {
+                log.warn("[BookAnalysis] 알 수 없는 status 값={} isbn={}", statusFromAi, isbn);
+            }
         }
 
-        // emotion 등 다른 분석 결과 어디에 저장...?
-
-        // Book JPA 엔티티는 @Transactional 안에서 dirty checking으로 자동 업데이트됨
-        // Response DTO 생성
-        return new BookAnalyzeResponse(
-                book.getIsbn(),
-                book.getIsAnalyzed() != null && book.getIsAnalyzed(),
-                book.getGenres(),
-                result.getPrompt()
-        );
+        // message 는 일단 로그용으로만 사용
+        if (metadata.getMessage() != null) {
+            log.info("[BookAnalysis] 메타데이터 message isbn={} message={}",
+                    isbn, metadata.getMessage());
+        }
     }
 }
