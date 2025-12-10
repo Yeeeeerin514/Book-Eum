@@ -55,21 +55,27 @@ def handle_generate_music(req: MusicGenerationRequest):
 
         # 2. 음악 생성
         filename = f"{req.isbn}_{req.chapter_number}.wav"
-        file_path = generate_music(final_prompt, filename, duration_sec=30.0)
+        file_path, elapsed_time = generate_music(final_prompt, filename, duration_sec=30.0)
+        
+        # 소수점 2자리로 다듬기
+        elapsed_time = round(elapsed_time, 2)
+        print(f"⏱️ Generation Time (from Service): {elapsed_time} sec")
 
-        # 3. 음악 프롬프트 정보를 헤더에 넣기 위해 JSON 직렬화 & URL 인코딩
+        # 3. 음악 메타데이터 생성
         # (HTTP 헤더에는 한글이나 특수문자가 들어가면 안 되므로 URL Encoding 필수)
         metadata = {
             "final_prompt": final_prompt,
             "selected_genres": prompt_result["selected_genres"],
             "selected_instruments": prompt_result["selected_instruments"],
             "selected_tempo": prompt_result["selected_tempo"],
-            "selected_keywords": prompt_result["selected_keywords"]
+            "selected_keywords": prompt_result["selected_keywords"],
+            "generation_time_sec": elapsed_time
         }
+        # JSON 직렬화 후 URL 인코딩
         metadata_json = json.dumps(metadata)
         metadata_encoded = urllib.parse.quote(metadata_json)
 
-        # 4. 파일 응답 + 커스텀 헤더 추가
+        # 4. 응답 전송
         response = FileResponse(
             path=file_path, 
             filename=filename, 

@@ -94,31 +94,8 @@ def generate_music(prompt: str, filename: str, duration_sec: float = 5.0) -> str
         print(f"✅ Music saved to: {filepath}")
         print(f"⏰ Generation time: {elapsed:.2f}초")
 
-        return filepath
+        return filepath, elapsed
         
     except Exception as e:
         print(f"❌ Error generating music: {str(e)}")
         raise e
-
-def generate_music_batch(prompts: list, filenames: list, duration_sec: float = 5.0) -> list:
-    """
-    여러 프롬프트를 한 번에 처리 (배치 생성)
-    
-    Args:
-        prompts: 프롬프트 리스트
-        filenames: 파일명 리스트
-        duration_sec: 음악 길이
-    
-    Returns:
-        생성된 음악 파일 경로 리스트
-    """
-    results = []
-    for prompt, filename in zip(prompts, filenames):
-        try:
-            path = generate_music_local(prompt, filename, duration_sec)
-            results.append(path)
-        except Exception as e:
-            print(f"Failed to generate {filename}: {e}")
-            results.append(None)
-    
-    return results
