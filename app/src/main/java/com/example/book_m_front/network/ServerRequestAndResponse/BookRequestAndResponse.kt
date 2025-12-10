@@ -3,6 +3,7 @@ package com.example.book_m_front.network.ServerRequestAndResponse
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.widget.Toast
 //import androidx.privacysandbox.tools.core.generator.build
 import com.example.book_m_front.network.Api
 import kotlinx.coroutines.Dispatchers
@@ -25,7 +26,7 @@ suspend fun uploadBookToServer(
     isbn: String,
     plot: String,
     fileUri: Uri
-): BookUploadResponse { //본 코드에서 result라는 객체에 저장
+): Unit { //본 코드에서 result라는 객체에 저장
     return withContext(Dispatchers.IO) {
         try {
             // URI에서 파일 읽기
@@ -62,13 +63,14 @@ suspend fun uploadBookToServer(
             )
 
             if (response.isSuccessful) {
-                response.body() ?: BookUploadResponse(false, "응답이 비어있습니다")
+                Toast.makeText(context, "도서 등록 완료", Toast.LENGTH_SHORT).show()
             } else {
-                BookUploadResponse(false, "서버 오류: ${response.code()}")
+                val errorMsg = response.errorBody()?.string() ?: "도서 등록 실패"
+                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
             }
         } catch (e: Exception) {
-            BookUploadResponse(false, "업로드 실패: ${e.message}")
-        } as BookUploadResponse
+            Toast.makeText(context, "업로드 실패: ${e.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 }
 

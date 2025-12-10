@@ -103,7 +103,7 @@ interface ApiService {
     /**
      * 책 제목으로 검색
      * @param query 검색어
-     * @param limit 한 페이지당 결과 수
+     * @param size 한 페이지당 결과 수
      * @param offset 건너뛸 결과 수
      * @param sort 정렬 방식 (sim: 정확도, rank: 인기순, date: 최신순)
      * @return 검색 결과
@@ -111,10 +111,11 @@ interface ApiService {
     @GET("books/search")
     suspend fun searchBookByTitle(
         @Query("query") query: String,
-        @Query("limit") limit: Int = 10,
+        @Query("size") size: Int = 10,
+        @Query("page") page: Int = 5,
         @Query("offset") offset: Int = 0,
         @Query("sort") sort: String = "sim"
-    ): Response<SearchBookByTitleResponse>
+    ): Response<SearchedBooks>
 
     /**
      * 장르로 책 검색
@@ -128,14 +129,14 @@ interface ApiService {
         @Query("genre") genre: String,
         @Query("limit") limit: Int = 10,
         @Query("offset") offset: Int = 0
-    ): Response<SearchBookByTitleResponse>
+    ): Response<SearchedBooks>
 
     /**
      * ISBN으로 책 상세 정보 조회
      * @param isbn 책 ISBN
      * @return 책 상세 정보
      */
-    @GET("books/{isbn}")
+    @GET("books/{isbn}/content")
     suspend fun getBookInfo(
         @Path("isbn") isbn: String
     ): Response<BookInfoResponse>
@@ -186,7 +187,7 @@ interface ApiService {
         @Part("author") author: RequestBody,
         @Part("plot") plot: RequestBody,
         @Part file: MultipartBody.Part
-    ): Response<BookUploadResponse>
+    ): Response</*BookUploadResponse*/ResponseBody>
 
     /**
      * 내가 업로드한 책 목록

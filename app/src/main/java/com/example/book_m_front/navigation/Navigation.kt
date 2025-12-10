@@ -35,9 +35,9 @@ sealed class Screen(val route: String) {
         }
     }
 
-    object BookInfo : Screen("book_info/{bookIsbn}") {
-        fun createRoute(bookIsbn: String): String {
-            return "book_info/$bookIsbn"
+    object BookInfo : Screen("book_info/{bookTitle}/{bookAuthor}/{bookIsbn}/{bookPlot}/{bookPublisher}") {
+        fun createRoute(bookTitle: String, bookAuthor: String, bookIsbn: String, bookPlot: String, bookPublisher: String?): String {
+            return "book_info/$bookTitle/$bookAuthor/$bookIsbn/$bookPlot/$bookPublisher"
         }
     }
 
@@ -131,8 +131,8 @@ fun AppNavigation() {
                 onUserClick = {
                     navController.navigate(Screen.User.route)
                 },
-                onBookClick = { bookIsbn ->
-                    navController.navigate(Screen.BookInfo.createRoute(bookIsbn))
+                onBookClick = { bookIsbn ->//TODO : 여기 그냥 로직 아예 삭제함ㅎㅎ;; maindisplay에서 책 목록 불러올 때 받는 정보 title, author..등을 넘겨주기.
+                    /*navController.navigate(Screen.BookInfo.createRoute(*//*TODO*//*))*///TODO: 메인딛스플레이에서 이걸 보내게 해야함.
                 },
                 onSearchButtonClick = { searchQuery ->
                     navController.navigate(Screen.SearchedBookList.createRoute(searchQuery))
@@ -169,9 +169,10 @@ fun AppNavigation() {
 
             SearchedBookList(
                 searchQueryFromNav = searchQuery,
-                onBookClick = { bookIsbn ->
-                    navController.navigate(Screen.BookInfo.createRoute(bookIsbn))
-                }
+                onBookClick = { bookTitle, bookAuthor, bookIsbn, bookPlot, bookPublisher ->
+                    navController.navigate(Screen.BookInfo.createRoute(bookTitle, bookAuthor, bookIsbn, bookPlot, bookPublisher))
+                },
+                onBackClick = { navController.popBackStack() },
             )
         }
 
@@ -179,15 +180,29 @@ fun AppNavigation() {
         composable(
             route = Screen.BookInfo.route,
             arguments = listOf(
-                navArgument("bookIsbn") {
+                navArgument("bookTitle") { type = NavType.StringType },
+                navArgument("bookAuthor") { type = NavType.StringType },
+                navArgument("bookIsbn") { type = NavType.StringType },
+                navArgument("bookPlot") { type = NavType.StringType },
+                navArgument("bookPublisher") {
                     type = NavType.StringType
+                    nullable = true // bookPublisher는 null이 될 수 있으므로 nullable 설정
                 }
             )
         ) { backStackEntry ->
+            val bookTitle = backStackEntry.arguments?.getString("bookTitle") ?: ""
+            val bookAuthor = backStackEntry.arguments?.getString("bookAuthor") ?: ""
             val bookIsbn = backStackEntry.arguments?.getString("bookIsbn") ?: ""
+            val bookPlot = backStackEntry.arguments?.getString("bookPlot") ?: ""
+            val bookPublisher = backStackEntry.arguments?.getString("bookPublisher") ?: ""
+
 
             BookInfo(
+                bookTitle = bookTitle,
+                bookAuthor = bookAuthor,
                 bookIsbn = bookIsbn,
+                bookPlot = bookPlot,
+                bookPublisher = bookPublisher,
                 // TODO: 필요한 다른 파라미터들 추가
                 onBackClick = { navController.popBackStack() },
                 onReadClick = { title, author, isbn ->

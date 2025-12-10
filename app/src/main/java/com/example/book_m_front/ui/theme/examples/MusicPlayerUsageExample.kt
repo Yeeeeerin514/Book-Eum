@@ -5,9 +5,7 @@ import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import com.example.book_m_front.network.ApiClient
-import com.example.book_m_front.network.AuthInterceptor
 import com.example.book_m_front.network.dto.*
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
@@ -116,13 +114,13 @@ suspend fun searchBooks(
     return try {
         val response = ApiClient.getService().searchBookByTitle(
             query = query,
-            limit = limit,
+            size = limit,
             offset = offset,
             sort = "sim"
         )
 
         if (response.isSuccessful && response.body() != null) {
-            Result.success(response.body()!!.data.books)
+            Result.success(response.body()!!.content)
         } else {
             Result.failure(Exception("검색 실패"))
         }

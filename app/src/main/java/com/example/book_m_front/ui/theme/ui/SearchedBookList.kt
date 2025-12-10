@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 fun SearchedBookList(
     searchQueryFromNav: String = "",
     onBackClick: () -> Unit = {},
-    onBookClick: (String) -> Unit = {}
+    onBookClick: (String, String, String, String, String?) -> Unit = {_,_,_,_,_->},
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -65,7 +65,7 @@ fun SearchedBookList(
                     // 제목으로 검색
                     repository.searchBooks(
                         query = searchQuery,
-                        limit = 30,
+                        size = 30,
                         offset = 0
                     )
                 } else {
@@ -77,9 +77,9 @@ fun SearchedBookList(
                     )
                 }
                 //책 목록 불러오는 걸 성공했을 때
-                result.onSuccess { books ->     //books는 List<BookItem>임.
-                    searchResults = books       //searchResults 변수에 책 목록을 저장함.
-                    if (books.isEmpty()) {
+                result.onSuccess { content ->     //books는 List<BookItem>임.
+                    searchResults = content       //searchResults 변수에 책 목록을 저장함.
+                    if (content.isEmpty()) {
                         Toast.makeText(
                             context,
                             "검색 결과가 없습니다",
@@ -301,7 +301,7 @@ fun SearchedBookList(
                             items(searchResults) { book ->
                                 BookCard(
                                     book = book,
-                                    onClick = { onBookClick(book.isbn) }
+                                    onClick = { onBookClick(book.title, book.author, book.isbn, book.plot, book.publisher) }
                                 )
                             }
                         }

@@ -77,6 +77,12 @@ fun LoginScreen(
         ) {
             Spacer(modifier = Modifier.height(75.dp))
 
+            Text(
+                text = "북-음",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF1B4332)
+            )
             // Logo
             Image(
                 painter = painterResource(R.drawable.deepgreenlogo),
@@ -84,13 +90,6 @@ fun LoginScreen(
                 modifier = Modifier
                     .padding(bottom = 25.dp),
                 contentScale  = ContentScale.Fit
-            )
-
-            Text(
-                text = "북 - 음",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF1B4332)
             )
 
             Spacer(modifier = Modifier.height(20.dp))

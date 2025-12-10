@@ -59,7 +59,8 @@ class BookMusicRepository(private val context: Context) {
         userId: String,
         password: String,
         name: String,
-        email: String? = null
+        email: String? = null,
+        phoneNumber: String? = null
     ): Result<AuthResponse> {
         return safeApiCall {
             ApiClient.getService().signup(
@@ -67,7 +68,8 @@ class BookMusicRepository(private val context: Context) {
                     id = userId,
                     password = password,
                     name = name,
-                    email = email
+                    email = email,
+                    phoneNumber = phoneNumber
                 )
             )
         }.also { result ->
@@ -110,18 +112,18 @@ class BookMusicRepository(private val context: Context) {
     // 책 검색
     suspend fun searchBooks(
         query: String,
-        limit: Int = 20,
+        size: Int = 20,
         offset: Int = 0,
         sort: String = "sim"
     ): Result<List<BookItem>> {
         return safeApiCall {
             ApiClient.getService().searchBookByTitle(
                 query = query,
-                limit = limit,
+                size = size,
                 offset = offset,
                 sort = sort
             )
-        }.map { it.data.books } //책 목록만 추출해서 보냄.
+        }.map { it.content } //책 목록만 추출해서 보냄.
     }
 
     // 장르로 검색
@@ -136,7 +138,7 @@ class BookMusicRepository(private val context: Context) {
                 limit = limit,
                 offset = offset
             )
-        }.map { it.data.books }
+        }.map { it.content }
     }
 
     // 책 상세 정보

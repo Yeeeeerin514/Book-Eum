@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.book_m_front.R
 import com.example.book_m_front.network.dto.BookInfoResponse
+import com.example.book_m_front.network.dto.BookItem
 import com.example.book_m_front.repository.Repository
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
 import kotlinx.coroutines.launch
@@ -36,7 +37,12 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookInfo(
+    //book: BookItem,
+    bookTitle: String,
+    bookAuthor: String,
     bookIsbn: String,
+    bookPlot: String,
+    bookPublisher: String = "",
     onBackClick: () -> Unit = {},
     onReadClick: (String, String, String) -> Unit = { _, _, _ -> } // title, author, isbn
 ) {
@@ -44,7 +50,8 @@ fun BookInfo(
     val scope = rememberCoroutineScope()
 
     // 책 정보 상태
-    var bookInfo by remember { mutableStateOf<BookInfoResponse?>(null) }
+    //var bookInfo by remember { mutableStateOf<BookInfoResponse?>(null) }
+    //ㄴ 이게 쓰인 곳은 모두 book으로 대체하면 됨.
     var isLoading by remember { mutableStateOf(true) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
@@ -52,8 +59,11 @@ fun BookInfo(
     var isLiked by remember { mutableStateOf(false) }
     var isLikeLoading by remember { mutableStateOf(false) }
 
+    isLoading = false //이 ui로 넘어온거면...book도 받은거니까.
+    //TODO : 이거 할 필요 없음. navigation으로 받으니까.
+
     // 책 정보 로드
-    LaunchedEffect(bookIsbn) {
+    /*LaunchedEffect(bookIsbn) {
         scope.launch {
             isLoading = true
             errorMessage = null
@@ -76,7 +86,7 @@ fun BookInfo(
                 isLoading = false
             }
         }
-    }
+    }*/
 
     // 좋아요 토글 함수
     fun toggleLike() {
@@ -180,7 +190,7 @@ fun BookInfo(
                     }
                 }
                 //책 정보를 가져와서 bookInfo에 저장함. (bookInfoResponse DTO)
-                bookInfo != null -> {
+                bookTitle != null -> {
                     // 책 정보 표시
                     Column(
                         modifier = Modifier
@@ -190,7 +200,7 @@ fun BookInfo(
                     ) {
                         // 책 제목
                         Text(
-                            text = bookInfo!!.title,
+                            text = bookTitle,
                             fontSize = 33.sp,
                             fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(bottom = 20.dp)
@@ -202,15 +212,15 @@ fun BookInfo(
                             modifier = Modifier.padding(bottom = 20.dp)
                         ) {
                             // 책 표지
-                            if (!bookInfo!!.coverImg.isNullOrEmpty()) {
-                                AsyncImage(
-                                    model = bookInfo!!.coverImg,
+                            if (false/*!book.coverImg.isNullOrEmpty()*/) {  //TODO: 나중에 구현
+                                /*AsyncImage(
+                                    model = book.coverImg,
                                     contentDescription = "책 표지",
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier
                                         .height(150.dp)
                                         .width(100.dp)
-                                )
+                                )*/
                             } else {
                                 Box(
                                     modifier = Modifier
@@ -226,43 +236,43 @@ fun BookInfo(
                                 // 작가
                                 Row(modifier = Modifier.padding(5.dp)) {
                                     Text("작가 | ", fontWeight = FontWeight.Bold)
-                                    Text(bookInfo!!.author)
+                                    Text(bookAuthor)
                                 }
 
                                 // 출판사
-                                if (!bookInfo!!.publisher.isNullOrEmpty()) {
+                                if (!bookPublisher.isNullOrEmpty()) {
                                     Row(modifier = Modifier.padding(5.dp)) {
                                         Text("출판사 | ", fontWeight = FontWeight.Bold)
-                                        Text(bookInfo!!.publisher!!)
+                                        Text(bookPublisher!!)
                                     }
                                 }
 
                                 Spacer(modifier = Modifier.height(8.dp))
 
-                                // 키워드
-                                if (!bookInfo!!.keywords.isNullOrEmpty()) {
-                                    bookInfo!!.keywords!!.take(3).forEach { keyword ->
+                               /* // 키워드
+                                if (!book.keywords.isNullOrEmpty()) {
+                                    book.keywords!!.take(3).forEach { keyword ->
                                         Keyword(keyword)
                                         Spacer(modifier = Modifier.height(4.dp))
                                     }
-                                }
+                                }*/
                             }
                         }
 
                         // 줄거리
-                        if (!bookInfo!!.plot.isNullOrEmpty()) {
+                        if (!bookPlot.isNullOrEmpty()) {
                             Column(modifier = Modifier.padding(vertical = 20.dp)) {
                                 Text(
                                     text = "줄거리",
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(bottom = 5.dp)
                                 )
-                                Text(text = bookInfo!!.plot!!)
+                                Text(text = bookPlot)
                             }
                         }
 
                         // 목차
-                        if (!bookInfo!!.tableOfContents.isNullOrEmpty()) {
+                        /*if (!bookInfo!!.tableOfContents.isNullOrEmpty()) {
                             Column(modifier = Modifier.padding(vertical = 20.dp)) {
                                 Text(
                                     text = "목차",
@@ -271,7 +281,7 @@ fun BookInfo(
                                 )
                                 Text(text = bookInfo!!.tableOfContents!!)
                             }
-                        }
+                        }*/
 
                         Spacer(modifier = Modifier.height(100.dp)) // 하단 버튼 공간
                     }
@@ -279,7 +289,7 @@ fun BookInfo(
             }
 
             // 하단 버튼 (좋아요 + 읽기 시작)
-            if (bookInfo != null) {
+            if (bookTitle != null) {
                 Column(
                     modifier = Modifier
                         .fillMaxSize()
@@ -318,9 +328,9 @@ fun BookInfo(
                         Button(
                             onClick = {
                                 onReadClick(
-                                    bookInfo!!.title,
-                                    bookInfo!!.author,
-                                    bookInfo!!.isbn
+                                    bookTitle,
+                                    bookAuthor,
+                                    bookIsbn
                                 )
                             },
                             modifier = Modifier.weight(1f),
@@ -359,5 +369,11 @@ fun Keyword(keyword: String) {
 @Preview
 @Composable
 fun BookInfoPreview() {
-    BookInfo(bookIsbn = "9788954429429")
+    BookInfo(
+        bookTitle = "책 제목임",
+        bookAuthor = "작가",
+        bookIsbn = "1ㅁㄴㅇㄹ",
+        bookPlot = "줄거리",
+        bookPublisher = "출판사"
+    )
 }

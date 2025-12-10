@@ -320,7 +320,7 @@ fun UserProfileScreen(
                             fileUri = fileUri
                         )
 
-                        if (result.success) {
+                        if (result!=null) {
                             Toast.makeText(
                                 context,
                                 "책이 성공적으로 추가되었습니다",
@@ -335,7 +335,7 @@ fun UserProfileScreen(
                         } else {
                             Toast.makeText(
                                 context,
-                                "업로드 실패: ${result.message}",
+                                "업로드 실패",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }

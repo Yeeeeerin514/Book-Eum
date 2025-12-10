@@ -33,7 +33,8 @@ data class UserJoinRequest(
     val id: String,
     val password: String,
     val name: String,
-    val email: String? = null
+    val email: String? = null,
+    val phoneNumber: String? = null
 )
 
 //토큰 갱신 요청
@@ -93,10 +94,14 @@ data class BookItem(
     val isbn: String,
     val title: String,
     val author: String,
+    val plot: String,               //TODO : plot이 필요한 부분에 이걸 쓰기.
+    val epubFilePath: String,       //얘 근데 받긴하지만 안 씀.
     val coverImg: String? = null,
     val publisher: String? = null,
-    val genre: List<String>? = null
-)
+    val genre: List<String>? = null,
+    val keywords: List<String>? = null,
+
+    )
 
 //책 상세 정보
 data class BookInfoResponse(
@@ -119,16 +124,19 @@ data class BookInfoResponse(
 
 //책 검색 응답
 data class SearchedBooks(
-    val totalCount: Int,
-    val limit: Int,
-    val offset: Int,
-    val books: List<BookItem>
-)
-
-data class SearchBookByTitleResponse(
     val success: Boolean = true,
-    val data: SearchedBooks
+    val page: Int,              //TODO : page를 UI에서 활용한다면 활용하기
+    val content: List<BookItem>,
+    val size: Int,//한 페이지당 결과 수
+    val totalElements: Int,
+    val totalPages: Int,        //TODO : totalPages를 UI에서 활용한다면 활용하기
+    val offset: Int = 0,    //백엔드에선 안보내주는거라서 일단 default값으로 0 줌.
 )
+/*
+data class SearchedBooks(
+    val success: Boolean = true,
+    val data: SearchedBooks,
+)*/
 
 //책 목록 응답
 data class BookListResponse(
@@ -150,7 +158,7 @@ data class BookDownloadResponse(
 )
 
 /**
- * 책 업로드 응답
+ * 책 업로드 응답 => 받징 않음. 그냥 ok여부만 바로 받음.
  */
 data class BookUploadResponse(
     val success: Boolean,

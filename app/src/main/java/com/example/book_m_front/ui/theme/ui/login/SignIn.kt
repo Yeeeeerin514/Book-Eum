@@ -255,7 +255,8 @@ fun SignUpScreen(
                                         userId = userId,
                                         password = password,
                                         name = name,
-                                        email = email.ifEmpty { null }
+                                        email = email.ifEmpty { null },
+                                        phoneNumber = phone.ifEmpty { null }
                                     )
 
                                     result.onSuccess { authResponse ->
