@@ -37,7 +37,9 @@ import com.example.book_m_front.ui.theme.ui.book.BookCard
 import com.example.book_m_front.ui.theme.ui.book.handleBookClickToEbookViewer
 import com.example.book_m_front.ui.theme.ui.playlist.PlaylistRow
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 사용자 프로필 화면 (API 연동 완료)
@@ -333,11 +335,14 @@ fun UserProfileScreen(
                             uploadedBooks = it
                         }
                         if (result!=null) {
-                            Toast.makeText(
-                                context,
-                                "책이 추가되었습니다",
-                                Toast.LENGTH_SHORT
-                            ).show()
+                            withContext(Dispatchers.Main){
+                                Toast.makeText(
+                                    context,
+                                    "책이 추가되었습니다",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+
                             showAddBookDialog = false
 
                             // 업로드한 책 목록 새로고침
@@ -345,21 +350,22 @@ fun UserProfileScreen(
                                 uploadedBooks = it
                             }
                         } else {
+                            withContext(Dispatchers.Main){
+                                Toast.makeText(
+                                    context,
+                                    "업로드 실패",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main){
                             Toast.makeText(
                                 context,
-                                "업로드 실패",
+                                "책이 추가되었습니다",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
-                    } catch (e: Exception) {
-                        Toast.makeText(
-                            context,
-                            "책이 추가되었습니다",
-                            /*
-                            "오류 발생: ${e.message}",
-                            */
-                            Toast.LENGTH_SHORT
-                        ).show()
                     } finally {
                         isUploading = false
                     }
