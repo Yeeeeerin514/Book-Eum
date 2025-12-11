@@ -3,18 +3,18 @@ package BukkeuBukkeu.Book_Eum.repository;
 import BukkeuBukkeu.Book_Eum.domain.book.Chapter;
 import BukkeuBukkeu.Book_Eum.domain.book.ChapterId;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 
+/**
+ * 📚 Chapter Repository
+ */
+@Repository
 public interface ChapterRepository extends JpaRepository<Chapter, ChapterId> {
 
-    // 특정 도서의 모든 챕터 조회
-    List<Chapter> findByIsbn(String isbn);
-
-    // 특정 도서의 특정 챕터 하나 조회
-    Optional<Chapter> findByIsbnAndChapterNum(String isbn, Integer chapterNum);
-
-    // 새로 분석할 때 기존 분석 제거 (아마 안 쓸듯)
-    void deleteByIsbn(String isbn);
+    /**
+     * ISBN으로 모든 챕터 조회 (챕터 번호 순서대로)
+     */
+    List<Chapter> findByIsbnOrderByChapterNumAsc(String isbn);
 }

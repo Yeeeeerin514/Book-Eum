@@ -7,17 +7,28 @@ import BukkeuBukkeu.Book_Eum.service.book.BookRegisterService;
 import BukkeuBukkeu.Book_Eum.service.book.BookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+/**
+ * 📚 도서 API 컨트롤러
+ *
+ * 추가된 기능:
+ * - GET /books/{isbn}/download - EPUB 파일 다운로드
+ */
+@Slf4j
 @RestController
 @RequestMapping("/books")
 @RequiredArgsConstructor
@@ -47,32 +58,102 @@ public class BookController {
             @Valid @ModelAttribute BookRegisterRequest request
     ) {
         bookRegisterService.register(request);
-        // “정상적으로 등록됐다”고만 간단히 알려줌
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body("Book registered successfully");
     }
 
     /**
-     * 도서 분석 완료
-     * - AI 서버가 "모든 챕터 분석을 완료했다"는 메타데이터 콜백 엔드포인트
-     * - AI 서버에서 POST /books/analyze 로 호출
+     * ✅ 새로 추가: ISBN으로 EPUB 파일 다운로드
+     *
+     * GET /books/{isbn}/download
+     *
+     * 예시: GET /books/9788934942467/download
+     *
+     * @param isbn 책 ISBN
+     * @return EPUB 파일 (application/epub+zip)
      */
-//    @PostMapping("/analyze")
-//    public ResponseEntity<Void> responseBookAnalysisMeta(
-//            @RequestBody BookAnalyzeResponse meta
-//    ) {
-//        bookAnalysisService.responseAnalysisCallback(meta);
-//        return ResponseEntity.ok().build();
-//    }
+    @GetMapping("/{isbn}/download")
+    public ResponseEntity<Resource> downloadEpubFile(@PathVariable String isbn) {
+        try {
+            log.info("EPUB 다운로드 요청: ISBN={}", isbn);
+
+            // 1. ISBN으로 도서 정보 조회
+            Book book = bookService.getByIsbn(isbn);
+
+            if (book == null) {
+                log.warn("책을 찾을 수 없음: ISBN={}", isbn);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // 2. EPUB 파일 경로 가져오기
+            String epubFilePath = book.getEpubFilePath();
+
+            if (epubFilePath == null || epubFilePath.isEmpty()) {
+                log.warn("EPUB 파일 경로 없음: ISBN={}", isbn);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // 3. 파일 경로를 Path 객체로 변환
+            Path filePath = Paths.get(epubFilePath).normalize();
+
+            // 4. 파일이 실제로 존재하는지 확인
+            if (!Files.exists(filePath)) {
+                log.warn("EPUB 파일이 존재하지 않음: path={}", epubFilePath);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // 5. Resource 객체 생성
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (!resource.exists() || !resource.isReadable()) {
+                log.warn("EPUB 파일을 읽을 수 없음: path={}", epubFilePath);
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+
+            // 6. Content-Type 설정
+            String contentType = "application/epub+zip";
+
+            // 7. 파일명 생성 (한글 제목 처리)
+            String fileName = sanitizeFileName(book.getTitle()) + ".epub";
+
+            log.info("EPUB 다운로드 성공: ISBN={}, title={}, size={} bytes",
+                    isbn, book.getTitle(), resource.contentLength());
+
+            // 8. HTTP 응답 헤더 설정
+            return ResponseEntity.ok()
+                    .contentType(MediaType.parseMediaType(contentType))
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + fileName + "\"")
+                    .header(HttpHeaders.CONTENT_LENGTH,
+                            String.valueOf(resource.contentLength()))
+                    .body(resource);
+
+        } catch (Exception e) {
+            log.error("EPUB 다운로드 중 오류 발생: ISBN={}", isbn, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 
     /**
      * 도서 삭제
      */
     @DeleteMapping("/{isbn}")
     public ResponseEntity<Void> deleteBook(@PathVariable String isbn) {
-
         bookService.deleteByIsbn(isbn);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 파일명 안전화 (특수문자 제거)
+     */
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null) {
+            return "book";
+        }
+
+        return fileName.replaceAll("[^a-zA-Z0-9가-힣\\s\\-_.]", "")
+                .replaceAll("\\s+", "_")
+                .substring(0, Math.min(fileName.length(), 100));
     }
 }
