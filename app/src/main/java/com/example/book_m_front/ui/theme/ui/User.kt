@@ -319,8 +319,18 @@ fun UserProfileScreen(
                             plot = plot,
                             fileUri = fileUri
                         )
+                        Toast.makeText(
+                            context,
+                            "책이 성공적으로 추가되었습니다",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        showAddBookDialog = false
 
-                        if (result!=null) {
+                        // 업로드한 책 목록 새로고침
+                        Repository.get().getMyUploadedBooks().onSuccess {
+                            uploadedBooks = it
+                        }
+                        /*if (result!=null) {
                             Toast.makeText(
                                 context,
                                 "책이 성공적으로 추가되었습니다",
@@ -338,7 +348,7 @@ fun UserProfileScreen(
                                 "업로드 실패",
                                 Toast.LENGTH_SHORT
                             ).show()
-                        }
+                        }*/
                     } catch (e: Exception) {
                         Toast.makeText(
                             context,
