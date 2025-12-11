@@ -1,27 +1,16 @@
 package BukkeuBukkeu.Book_Eum.controller;
 
-import BukkeuBukkeu.Book_Eum.domain.music.AIMusic;
-import BukkeuBukkeu.Book_Eum.dto.music.ChapterPlaylistResponse;
 import BukkeuBukkeu.Book_Eum.service.music.MusicFileService;
-import BukkeuBukkeu.Book_Eum.service.music.MusicService;
-import BukkeuBukkeu.Book_Eum.service.storage.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriUtils;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 /**
  * 🎵 음악 API 컨트롤러
@@ -37,41 +26,6 @@ import java.nio.file.Paths;
 public class MusicController {
 
     private final MusicFileService musicFileService;
-
-//    /**
-//     * 🎯 1. 책의 챕터별 플레이리스트 조회
-//     *
-//     * GET /music/playlist/{isbn}
-//     *
-//     * 예시: GET /music/playlist/9788934942467
-//     *
-//     * @param isbn 책 ISBN
-//     * @return 챕터별로 구성된 전체 플레이리스트 메타데이터
-//     */
-//    @GetMapping("/playlist/{isbn}")
-//    public ResponseEntity<ChapterPlaylistResponse> getPlaylistByIsbn(
-//            @PathVariable String isbn
-//    ) {
-//        try {
-//            log.info("플레이리스트 조회 요청: ISBN={}", isbn);
-//
-//            ChapterPlaylistResponse response = musicService.getChapterPlaylistByIsbn(isbn);
-//
-//            log.info("플레이리스트 조회 성공: ISBN={}, 챕터 수={}, 음악 수={}",
-//                    isbn, response.getTotalChapters(), response.getTotalTracks());
-//
-//            return ResponseEntity.ok(response);
-//
-//        } catch (IllegalArgumentException e) {
-//            log.warn("플레이리스트 조회 실패: {}", e.getMessage());
-//            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
-//
-//        } catch (Exception e) {
-//            log.error("플레이리스트 조회 중 오류 발생: ISBN={}", isbn, e);
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-//        }
-//    }
-
 
     /**
      * 음악 파일 다운로드 (.wav)

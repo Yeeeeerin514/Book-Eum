@@ -76,4 +76,17 @@ public class LocalFileStorageService implements FileStorageService {
             throw new RuntimeException("EPUB 파일 로드 실패: " + storedPath, e);
         }
     }
+
+    public Resource loadAsResource(String storedPath) {
+        try {
+            Path filePath = Paths.get(storedPath).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new RuntimeException("파일을 읽을 수 없습니다: " + storedPath);
+            }
+            return resource;
+        } catch (Exception e) {
+            throw new RuntimeException("파일 로드 실패: " + storedPath, e);
+        }
+    }
 }

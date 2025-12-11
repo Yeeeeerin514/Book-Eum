@@ -12,6 +12,11 @@ public interface ChapterRepository extends JpaRepository<Chapter, ChapterId> {
     // 특정 도서의 모든 챕터 조회
     List<Chapter> findByIsbn(String isbn);
 
+    /**
+     * ISBN으로 모든 챕터 조회 (챕터 번호 순서대로)
+     */
+    List<Chapter> findByIsbnOrderByChapterNumAsc(String isbn);
+
     // 특정 도서의 특정 챕터 하나 조회
     Optional<Chapter> findByIsbnAndChapterNum(String isbn, Integer chapterNum);
 

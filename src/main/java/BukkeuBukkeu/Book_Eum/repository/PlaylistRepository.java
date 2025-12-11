@@ -1,18 +1,41 @@
 package BukkeuBukkeu.Book_Eum.repository;
 
-import BukkeuBukkeu.Book_Eum.domain.Playlist;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
+import BukkeuBukkeu.Book_Eum.domain.music.Playlist;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
-import java.util.*;
+import java.util.Optional;
+import java.util.List;
 
+/**
+ * 🎵 Playlist Repository
+ */
+@Repository
 public interface PlaylistRepository extends JpaRepository<Playlist, Long> {
 
-    // 특정 도서(isbn 기준)에 해당하는 모든 플레이리스트 조회
-    List<Playlist> findByIsbn(String isbn);
-    Page<Playlist> findByIsbn(String isbn, Pageable pageable);
+    /**
+     * ISBN으로 플레이리스트 조회
+     *
+     * @param isbn 책 ISBN
+     * @return Playlist
+     */
+    Optional<Playlist> findByIsbn(String isbn);
 
-    // 도서 삭제 시 연쇄적으로 플레이리스트도 삭제
-    void deleteByIsbn(String isbn);
+    Optional<Playlist> findByIsbnAndChapterNumAndCreatorType(
+            String isbn,
+            Integer chapterNum,
+            String creatorType
+    );
+
+    List<Playlist> findByIsbnAndCreatorTypeOrderByChapterNumAsc(
+            String isbn,
+            String creatorType
+    );
+
+    /**
+     * ISBN으로 플레이리스트 존재 여부 확인
+     */
+    boolean existsByIsbn(String isbn);
 }
