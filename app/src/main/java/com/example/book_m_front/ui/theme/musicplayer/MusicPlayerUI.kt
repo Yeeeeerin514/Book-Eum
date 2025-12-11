@@ -61,6 +61,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.book_m_front.network.dto.Music
@@ -80,7 +81,7 @@ import com.example.book_m_front.ui.theme.viewmodel.MusicPlayerViewModel
 
 @Composable
 fun MusicPlayerUI(
-    viewModel: MusicPlayerViewModel = viewModel()
+    viewModel: MusicPlayerViewModel = hiltViewModel()
 ) {
     // 현재 표시할 화면 (true = 플레이어, false = 플레이리스트)
     var showPlayer by remember { mutableStateOf(false) }

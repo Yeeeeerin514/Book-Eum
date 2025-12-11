@@ -43,6 +43,7 @@ import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.example.book_m_front.ui.theme.musicplayer.MusicPlayerUI
 import com.example.book_m_front.ui.theme.viewmodel.EbookViewModel
 import com.example.book_m_front.util.Chapter
 import com.example.book_m_front.util.SafeEpubParser
@@ -289,7 +290,8 @@ fun EbookViewerWithMusicScreen(
             exit = slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
-            MusicPlayerCard(
+            MusicPlayerUI(viewModel = musicPlayerViewModel)
+            /*MusicPlayerCard(
                 currentTrack = currentTrack,
                 isPlaying = isPlaying,
                 progress = progress,
@@ -324,7 +326,7 @@ fun EbookViewerWithMusicScreen(
                 currentSize = fontSize,
                 onSizeChange = { fontSize = it },
                 onDismiss = { showFontSizeDialog = false }
-            )
+            )*/
         }
     }
 }
