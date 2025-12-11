@@ -210,7 +210,7 @@ data class ChapterBasedPlaylistResponse(
     val isbn: String,
     val title: String,
     val totalChapters: Int,
-    val totalMusics: Int,
+    val totalMusic: Int,
     val chapterPlaylist: List<ChapterPlaylist>
 )
 typealias BookPlaylistResponse = ChapterBasedPlaylistResponse

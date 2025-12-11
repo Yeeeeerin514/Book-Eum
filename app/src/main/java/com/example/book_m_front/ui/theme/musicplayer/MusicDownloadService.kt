@@ -89,10 +89,10 @@ class MusicDownloadService @Inject constructor(
             }
 
             val playlist = response.body()!!
-            Log.d(TAG, "플레이리스트 조회 성공: ${playlist.totalChapters}개 챕터, ${playlist.totalMusics}곡")
+            Log.d(TAG, "플레이리스트 조회 성공: ${playlist.totalChapters}개 챕터, ${playlist.totalMusic}곡")
 
             var downloadedCount = 0
-            val totalTracks = playlist.totalMusics
+            val totalTracks = playlist.totalMusic
             val allLocalPaths = mutableListOf<String>()
 
             // 2. 첫 번째 챕터 우선 다운로드
