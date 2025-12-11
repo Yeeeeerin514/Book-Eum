@@ -56,7 +56,6 @@ fun EbookViewerWithMusicScreen(
     onBackClick: () -> Unit,
     musicPlayerViewModel: MusicPlayerViewModel = viewModel(),
     ebookViewModel: EbookViewModel = viewModel()
-
     ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

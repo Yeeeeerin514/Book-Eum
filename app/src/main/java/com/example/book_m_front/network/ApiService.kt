@@ -131,15 +131,6 @@ interface ApiService {
         @Query("offset") offset: Int = 0
     ): Response<SearchedBooks>
 
-    /**
-     * ISBN으로 책 상세 정보 조회
-     * @param isbn 책 ISBN
-     * @return 책 상세 정보
-     */
-    @GET("books/{isbn}/content")
-    suspend fun getBookInfo(
-        @Path("isbn") isbn: String
-    ): Response<BookInfoResponse>
 
     //책 string가져오기~
     @GET("api/books/content/{isbn}") // 백엔드의 실제 API 엔드포인트에 맞춰 수정
@@ -151,7 +142,7 @@ interface ApiService {
      * @return 다운로드 가능한 URL
      */
     @GET("books/{isbn}/download-url")
-    suspend fun getBookDownloadUrl(
+    suspend fun getBookDownloadUrl( //지금은 안 쓰임.
         @Path("isbn") isbn: String
     ): Response<BookDownloadResponse>
 

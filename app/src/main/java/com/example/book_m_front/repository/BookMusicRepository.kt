@@ -141,12 +141,7 @@ class BookMusicRepository(private val context: Context) {
         }.map { it.content }
     }
 
-    // 책 상세 정보
-    suspend fun getBookInfo(isbn: String): Result<BookInfoResponse> {
-        return safeApiCall {
-            ApiClient.getService().getBookInfo(isbn)
-        }
-    }
+
 
     // 책 다운로드 URL
     suspend fun getBookDownloadUrl(isbn: String): Result<String> {
