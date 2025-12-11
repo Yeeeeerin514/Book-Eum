@@ -75,7 +75,7 @@ class MusicDownloadManager @Inject constructor(
             var downloadedCount = 0
             val totalTracks = playlist.totalTracks
 
-            // 2. 첫 번째 챕터 우선 다운로드
+            // 2. 첫 번째 챕터 우선 다운로드 (챕터 리스트 중 첫번째 꺼 가져오기)
             val firstChapter = playlist.chapters.firstOrNull()
 
             if (firstChapter != null) {

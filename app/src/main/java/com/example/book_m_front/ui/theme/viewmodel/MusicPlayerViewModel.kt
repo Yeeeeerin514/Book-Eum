@@ -95,7 +95,7 @@ class MusicPlayerViewModel @Inject constructor(
                         allLocalPaths.addAll(localPaths)
 
                         if (localPaths.isNotEmpty()) {
-                            playLocalFile(localPaths.first())
+                            playLocalFile(localPaths.first())   //viewmodel에 있는 함수
                             Log.d(TAG, "🎵 재생 시작: ${localPaths.first()}")
                         }
                     },

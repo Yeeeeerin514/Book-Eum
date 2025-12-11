@@ -1,6 +1,7 @@
 package com.example.book_m_front.network
 
 import android.content.Context
+import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -8,6 +9,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
 
+private const val TAG = "FileDownloader" // ✨ 이 줄 추가
 /**
  * 서버에서 ISBN에 해당하는 EPUB 파일을 다운로드하여 내부 캐시에 저장하고,
  * 저장된 파일의 경로를 반환합니다.
@@ -66,13 +68,12 @@ suspend fun downloadAndGetBookPath(context: Context, isbn: String): String? {
                 }
             } else {
                 // 서버가 404, 500 등 오류 코드를 응답한 경우
-                println("파일 다운로드 실패. 응답 코드: ${response.code()}, 메시지: ${response.message()}")
+                Log.e(TAG, "파일 다운로드 실패. 응답 코드: ${response.code()}, 메시지: ${response.message()}")
                 return@withContext null
             }
         } catch (e: Exception) {
             // 네트워크 연결 실패 등 Retrofit 호출 자체에서 예외가 발생한 경우
-            println("파일 다운로드 중 네트워크 오류 발생: ${e.message}")
-            e.printStackTrace()
+            Log.e(TAG, "파일 다운로드 중 네트워크 오류 발생", e) // 예외 객체(e)도 함께 넘겨주면 스택 트레이스가 기록됨            e.printStackTrace()
             return@withContext null
         }
     }

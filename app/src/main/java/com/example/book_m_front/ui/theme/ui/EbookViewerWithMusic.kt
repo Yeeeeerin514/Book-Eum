@@ -1,5 +1,6 @@
 package com.example.book_m_front.ui.theme.ui
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -46,6 +47,8 @@ import com.example.book_m_front.util.Chapter
 import com.example.book_m_front.util.SafeEpubParser
 import kotlinx.coroutines.flow.MutableStateFlow
 
+private const val TAG = "EbookViewerWithMusic"
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EbookViewerWithMusicScreen(
@@ -57,6 +60,7 @@ fun EbookViewerWithMusicScreen(
     musicPlayerViewModel: MusicPlayerViewModel = viewModel(),
     ebookViewModel: EbookViewModel = viewModel()
     ) {
+
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -101,9 +105,11 @@ fun EbookViewerWithMusicScreen(
                     epubContent = SafeEpubParser.parseEpub(context, testFilePath)
                 } else {
                     // 서버에서 EPUB 파일 다운로드
+                    Log.d(TAG,"서버에서 EPUB 파일 다운로드해서 로컬 캐시에 저장하고, 그 저장 경로 받아옴.")
                     val localBookPath = downloadAndGetBookPath(context, bookIsbn)
 
                     if (localBookPath != null) {
+                        Log.d(TAG,"epub파일이 저장된 로컬 경로로부터, 파일을 읽어와서 파싱해옴.")
                         epubContent = SafeEpubParser.parseEpub(context, localBookPath)
                     } else {
                         errorMessage = "책 파일을 불러오는 데 실패했습니다."
@@ -118,25 +124,9 @@ fun EbookViewerWithMusicScreen(
         }
     }
 
-    // 음악 플레이리스트 로드
+    // ✅ 올바른 구현: ISBN으로 자동 다운로드 및 재생
     LaunchedEffect(bookIsbn) {
-        scope.launch {
-            try {
-                val response = Api.retrofitService.getPlaylist(bookIsbn)
-                if (response.isSuccessful && response.body() != null) {
-                    val playlistData = response.body()!!.playlist
-                    if (playlistData.isNotEmpty()) {
-                        musicPlayerViewModel.setPlaylist(playlistData)
-                        // 첫 번째 곡 자동 재생 (선택적)
-                        // musicPlayerViewModel.playPlaylist(playlistData, 0)
-                    }
-                } else {
-                    println("플레이리스트 정보 로드 실패: ${response.code()}")
-                }
-            } catch (e: Exception) {
-                println("플레이리스트 정보 로드 중 오류 발생: ${e.message}")
-            }
-        }
+        musicPlayerViewModel.loadAndPlayPlaylist(bookIsbn)
     }
 
     // ✅ 수정: 챕터 변경 시 음악 변경 (안전하게 처리)
