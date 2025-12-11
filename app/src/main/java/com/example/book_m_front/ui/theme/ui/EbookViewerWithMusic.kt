@@ -42,6 +42,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.WebSettings
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.book_m_front.ui.theme.viewmodel.EbookViewModel
 import com.example.book_m_front.util.Chapter
 import com.example.book_m_front.util.SafeEpubParser
@@ -57,7 +58,7 @@ fun EbookViewerWithMusicScreen(
     bookIsbn: String,
     testFilePath: String? = null,
     onBackClick: () -> Unit,
-    musicPlayerViewModel: MusicPlayerViewModel = viewModel(),
+    musicPlayerViewModel: MusicPlayerViewModel = hiltViewModel(),
     ebookViewModel: EbookViewModel = viewModel()
     ) {
 

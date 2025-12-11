@@ -24,8 +24,8 @@ import javax.inject.Inject
 class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
     private val musicRepository: MusicRepository,
-    private val musicDownloadService: MusicDownloadService  // ✅ 수정: 통합 서비스 사용
-    , application: Application
+    private val musicDownloadService: MusicDownloadService,  // ✅ 수정: 통합 서비스 사용
+    application: Application
 ) : AndroidViewModel(application) {
 
     companion object {
