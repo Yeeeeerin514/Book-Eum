@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.book_m_front.network.dto.Music
 import com.example.book_m_front.ui.theme.musicplayer.MusicController
+import com.example.book_m_front.ui.theme.musicplayer.MusicDownloadManager
 import com.example.book_m_front.ui.theme.musicplayer.MusicRepository
 import com.example.book_m_front.ui.theme.musicplayer.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -25,7 +26,9 @@ import javax.inject.Inject
 @HiltViewModel
 class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
-    private val musicRepository: MusicRepository
+    private val musicRepository: MusicRepository,
+    private val musicDownloadManager: MusicDownloadManager  // ✅ 새로 추가!
+
 ) : ViewModel() {
 
     // ========================================
@@ -62,6 +65,22 @@ class MusicPlayerViewModel @Inject constructor(
     // 에러 메시지
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
+
+    // ========================================
+    // ✅ 새로운 다운로드 관련 상태
+    // ========================================
+
+    // 다운로드 진행 중 여부
+    private val _isDownloading = MutableStateFlow(false)
+    val isDownloading: StateFlow<Boolean> = _isDownloading.asStateFlow()
+
+    // 다운로드 진행률 (0.0 ~ 1.0)
+    private val _downloadProgress = MutableStateFlow(0f)
+    val downloadProgress: StateFlow<Float> = _downloadProgress.asStateFlow()
+
+    // 첫 챕터 준비 완료 여부
+    private val _firstChapterReady = MutableStateFlow(false)
+    val firstChapterReady: StateFlow<Boolean> = _firstChapterReady.asStateFlow()
 
     init {
         // ViewModel이 생성될 때 자동으로 플레이리스트 로드 (선택적)

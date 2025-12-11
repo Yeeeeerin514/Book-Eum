@@ -168,7 +168,36 @@ data class BookUploadResponse(
 )
 
 // ================== 플레이리스트 ==================
+//새로운 플리 DTO
+data class ChapterBasedPlaylistResponse(
+    val success: Boolean = true,
+    val isbn: String,
+    val bookTitle: String,
+    val totalChapters: Int,
+    val totalTracks: Int,
+    val chapters: List<ChapterPlaylist>
+)
 
+/**
+ * 챕터별 음악 목록
+ */
+data class ChapterPlaylist(
+    val chapterNumber: Int,
+    val chapterTitle: String,
+    val tracks: List<MusicTrack>
+)
+
+data class MusicTrack(
+    val id: String,                    // music_001
+    val title: String,                 // "B-612"
+    val artist: String,                // "오왠"
+    val album: String?,                // "어린왕자 OST"
+    val duration: Long?,               // 225000 (밀리초)
+    val downloadUrl: String,           // "/music/music_001/download"
+    val albumArtUrl: String?           // "/music/music_001/artwork"
+)
+
+//------옛날 DTO-----------
 /**
  * 음악 트랙 정보
  */

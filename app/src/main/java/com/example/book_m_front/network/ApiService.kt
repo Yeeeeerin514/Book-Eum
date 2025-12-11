@@ -203,6 +203,42 @@ interface ApiService {
 
 
     // ================== 플레이리스트 관련 ==================
+    //-----------새로운 api service----------------
+    /**
+     * 🎵 책의 챕터별 플레이리스트 가져오기 (새로운 API)
+     *
+     * @param isbn 책 ISBN
+     * @return 챕터별로 구성된 전체 플레이리스트
+     */
+    @GET("music/playlist/{isbn}")
+    suspend fun getChapterBasedPlaylist(
+        @Path("isbn") isbn: String
+    ): Response<ChapterBasedPlaylistResponse>
+
+    /**
+     * 🎵 음악 파일 다운로드
+     *
+     * @param musicId 음악 ID (예: "music_001")
+     * @return 음악 파일 바이너리 스트림
+     */
+    @Streaming
+    @GET("music/{musicId}/download")
+    suspend fun downloadMusicFile(
+        @Path("musicId") musicId: String
+    ): Response<ResponseBody>
+
+    /**
+     * 🎵 앨범 아트 다운로드 (선택적)
+     *
+     * @param musicId 음악 ID
+     * @return 이미지 파일 바이너리
+     */
+    @GET("music/{musicId}/artwork")
+    suspend fun getMusicArtwork(
+        @Path("musicId") musicId: String
+    ): Response<ResponseBody>
+
+    //----------예전 api service------------
 
     /**
      * 책의 AI 생성 플레이리스트 가져오기
@@ -220,11 +256,11 @@ interface ApiService {
      * @param musicId 다운로드할 음악의 고유 ID
      * @return 음악 파일의 바이너리 데이터 스트림
      */
-    @GET("musics/{musicId}/content") // 백엔드와 약속된 실제 엔드포인트로 수정해야 합니다.
+/*    @GET("musics/{musicId}/content") // 백엔드와 약속된 실제 엔드포인트로 수정해야 합니다.
     @Streaming // 대용량 파일(음악)을 처리하기 위해 스트리밍 방식을 사용
     suspend fun downloadMusicFile(
         @Path("musicId") musicId: String
-    ): Response<ResponseBody>
+    ): Response<ResponseBody>*/
     // ✨ --- 여기까지 추가 --- ✨
 
     /**
