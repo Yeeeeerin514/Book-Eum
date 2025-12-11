@@ -79,7 +79,7 @@ fun EbookViewerWithMusicScreen(
     var isDarkMode by remember { mutableStateOf(false) }
 
     // 음악 플레이어 상태
-    var showMusicPlayer by remember { mutableStateOf(false) }
+    var showMusicPlayer by remember { mutableStateOf(true) }
 
     // ✅ 수정: ViewModel에서 제공하는 상태들만 사용
     val playerState by musicPlayerViewModel.playerState.collectAsState()
@@ -192,7 +192,7 @@ fun EbookViewerWithMusicScreen(
                     }
                     IconButton(onClick = { showMusicPlayer = !showMusicPlayer }) {
                         Icon(
-                            if (showMusicPlayer) Icons.Default.MusicOff else Icons.Default.MusicNote,
+                            if (showMusicPlayer) Icons.Default.MusicNote else Icons.Default.MusicOff,
                             "음악 플레이어",
                             tint = textColor
                         )
@@ -285,7 +285,7 @@ fun EbookViewerWithMusicScreen(
 
         // ✅ 음악 플레이어 (수정됨)
         AnimatedVisibility(
-            visible = showMusicPlayer && playlist.isNotEmpty(),
+            visible = showMusicPlayer /*&& playlist.isNotEmpty()*/, //그냥 showMusicPlayer이면 무조건 띄우도록.
             enter = slideInVertically(initialOffsetY = { it }),
             exit = slideOutVertically(targetOffsetY = { it }),
             modifier = Modifier.align(Alignment.BottomCenter)
@@ -304,7 +304,7 @@ fun EbookViewerWithMusicScreen(
                 onNext = { musicPlayerViewModel.skipToNext() },
                 onPrevious = { musicPlayerViewModel.skipToPrevious() },
                 onClose = { showMusicPlayer = false }
-            )
+            )*/
         }
 
         // 챕터 목록 다이얼로그
@@ -326,7 +326,7 @@ fun EbookViewerWithMusicScreen(
                 currentSize = fontSize,
                 onSizeChange = { fontSize = it },
                 onDismiss = { showFontSizeDialog = false }
-            )*/
+            )
         }
     }
 }
