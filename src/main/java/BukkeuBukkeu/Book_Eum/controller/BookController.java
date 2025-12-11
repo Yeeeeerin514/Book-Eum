@@ -3,21 +3,35 @@ package BukkeuBukkeu.Book_Eum.controller;
 import BukkeuBukkeu.Book_Eum.domain.book.Book;
 import BukkeuBukkeu.Book_Eum.dto.book.*;
 import BukkeuBukkeu.Book_Eum.service.book.BookAnalysisService;
+import BukkeuBukkeu.Book_Eum.service.book.BookContentService;
 import BukkeuBukkeu.Book_Eum.service.book.BookRegisterService;
 import BukkeuBukkeu.Book_Eum.service.book.BookService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.util.UriUtils;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
+/**
+ * 📚 도서 API 컨트롤러
+ *
+ * 추가된 기능:
+ * - GET /books/{isbn}/download - EPUB 파일 다운로드
+ */
+@Slf4j
 @RestController
 @RequestMapping("/books")
 @RequiredArgsConstructor
@@ -26,6 +40,7 @@ public class BookController {
     private final BookService bookService;
     private final BookAnalysisService bookAnalysisService;
     private final BookRegisterService bookRegisterService;
+    private final BookContentService bookContentService;
 
     /**
      * 제목으로 도서 검색
@@ -47,32 +62,48 @@ public class BookController {
             @Valid @ModelAttribute BookRegisterRequest request
     ) {
         bookRegisterService.register(request);
-        // “정상적으로 등록됐다”고만 간단히 알려줌
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body("Book registered successfully");
     }
 
     /**
-     * 도서 분석 완료
-     * - AI 서버가 "모든 챕터 분석을 완료했다"는 메타데이터 콜백 엔드포인트
-     * - AI 서버에서 POST /books/analyze 로 호출
+     * 도서 epub 파일 다운로드
      */
-//    @PostMapping("/analyze")
-//    public ResponseEntity<Void> responseBookAnalysisMeta(
-//            @RequestBody BookAnalyzeResponse meta
-//    ) {
-//        bookAnalysisService.responseAnalysisCallback(meta);
-//        return ResponseEntity.ok().build();
-//    }
+    @GetMapping(value = "/{isbn}/content", produces = "application/epub+zip")
+    public ResponseEntity<Resource> downloadBook(@PathVariable String isbn) {
+        BookContentService.BookFile bookFile = bookContentService.getBookFile(isbn);
+
+        // 한글 파일명 깨지는 것 방지
+        String encodedFileName = UriUtils.encode(bookFile.fileName(), StandardCharsets.UTF_8);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=\"" + encodedFileName + "\"")
+                .contentType(MediaType.parseMediaType("application/epub+zip"))
+                .contentLength(bookFile.contentLength())
+                .body(bookFile.resource());
+    }
 
     /**
      * 도서 삭제
      */
     @DeleteMapping("/{isbn}")
     public ResponseEntity<Void> deleteBook(@PathVariable String isbn) {
-
         bookService.deleteByIsbn(isbn);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 파일명 안전화 (특수문자 제거)
+     */
+    private String sanitizeFileName(String fileName) {
+        if (fileName == null) {
+            return "book";
+        }
+
+        return fileName.replaceAll("[^a-zA-Z0-9가-힣\\s\\-_.]", "")
+                .replaceAll("\\s+", "_")
+                .substring(0, Math.min(fileName.length(), 100));
     }
 }
