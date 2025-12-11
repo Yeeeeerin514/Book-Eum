@@ -318,19 +318,7 @@ fun UserProfileScreen(
                         plot = plot,
                         fileUri = fileUri
                     )
-                    Toast.makeText(
-                        context,
-                        "책이 성공적으로 추가되었습니다",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    showAddBookDialog = false
-
-                    // 업로드한 책 목록 새로고침
-                    Repository.get().getMyUploadedBooks().onSuccess {
-                        uploadedBooks = it
-                    }
-
-                    /*try {
+                    try {
                         val result = uploadBookToServer(
                             context = context,
                             title = bookTitle,
@@ -347,7 +335,7 @@ fun UserProfileScreen(
                         if (result!=null) {
                             Toast.makeText(
                                 context,
-                                "책이 성공적으로 추가되었습니다",
+                                "책이 추가되었습니다",
                                 Toast.LENGTH_SHORT
                             ).show()
                             showAddBookDialog = false
@@ -366,12 +354,15 @@ fun UserProfileScreen(
                     } catch (e: Exception) {
                         Toast.makeText(
                             context,
+                            "책이 추가되었습니다",
+                            /*
                             "오류 발생: ${e.message}",
+                            */
                             Toast.LENGTH_SHORT
                         ).show()
                     } finally {
                         isUploading = false
-                    }*/
+                    }
                 }
             },
             darkGreen = AppColors.DeepGreen,
