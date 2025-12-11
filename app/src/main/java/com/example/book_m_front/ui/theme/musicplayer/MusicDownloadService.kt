@@ -5,7 +5,6 @@ import android.util.Log
 import com.example.book_m_front.network.Api
 import com.example.book_m_front.network.UnifiedFileDownloader
 import com.example.book_m_front.network.dto.MusicTrack
-import com.example.book_m_front.network.dto.BookPlaylistResponse
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -90,22 +89,22 @@ class MusicDownloadService @Inject constructor(
             }
 
             val playlist = response.body()!!
-            Log.d(TAG, "플레이리스트 조회 성공: ${playlist.totalChapters}개 챕터, ${playlist.totalTracks}곡")
+            Log.d(TAG, "플레이리스트 조회 성공: ${playlist.totalChapters}개 챕터, ${playlist.totalMusics}곡")
 
             var downloadedCount = 0
-            val totalTracks = playlist.totalTracks
+            val totalTracks = playlist.totalMusics
             val allLocalPaths = mutableListOf<String>()
 
             // 2. 첫 번째 챕터 우선 다운로드
-            val firstChapter = playlist.chapters.firstOrNull()
+            val firstChapter = playlist.chapterPlaylist.firstOrNull()
 
             if (firstChapter != null) {
                 Log.d(TAG, "첫 챕터 다운로드 시작: ${firstChapter.chapterTitle}")
 
                 val firstChapterPaths = mutableListOf<String>()
 
-                for ((index, track) in firstChapter.tracks.withIndex()) {
-                    Log.d(TAG, "첫 챕터 [${index + 1}/${firstChapter.tracks.size}] 다운로드: ${track.title}")
+                for ((index, track) in firstChapter.musics.withIndex()) {
+                    Log.d(TAG, "첫 챕터 [${index + 1}/${firstChapter.musics.size}] 다운로드: ${track.title}")
 
                     val result = downloadTrack(track)
 
@@ -128,12 +127,12 @@ class MusicDownloadService @Inject constructor(
             }
 
             // 3. 나머지 챕터 다운로드
-            val remainingChapters = playlist.chapters.drop(1)
+            val remainingChapters = playlist.chapterPlaylist.drop(1)
 
             for ((chapterIndex, chapter) in remainingChapters.withIndex()) {
                 Log.d(TAG, "챕터 [${chapterIndex + 2}/${playlist.totalChapters}] 다운로드: ${chapter.chapterTitle}")
 
-                for (track in chapter.tracks) {
+                for (track in chapter.musics) {
                     val result = downloadTrack(track)
 
                     if (result.isSuccess) {

@@ -170,8 +170,8 @@ data class BookUploadResponse(
 // ================== 플레이리스트 ==================
 data class MusicTrack(
     val id: String,                    // 음악 고유 ID
-    val title: String,                 // 곡 제목
-    val artist: String,                // 아티스트
+    val title: String = "music title",                 // 곡 제목
+    val artist: String = "artist name",                // 아티스트
     val album: String? = null,         // 앨범명
     val duration: Long? = null,        // 재생 시간 (밀리초)
     val downloadUrl: String? = null,   // 다운로드 URL
@@ -197,9 +197,9 @@ typealias Music = MusicTrack
  * 챕터별 음악 목록
  */
 data class ChapterPlaylist(
-    val chapterNumber: Int,
-    val chapterTitle: String,
-    val tracks: List<MusicTrack>
+    val chapterNum: Int,
+    val chapterTitle: String= "chapter title",
+    val musics: List<MusicTrack>
 )
 
 
@@ -208,10 +208,10 @@ data class ChapterPlaylist(
 data class ChapterBasedPlaylistResponse(
     val success: Boolean = true,
     val isbn: String,
-    val bookTitle: String,
+    val title: String,
     val totalChapters: Int,
-    val totalTracks: Int,
-    val chapters: List<ChapterPlaylist>
+    val totalMusics: Int,
+    val chapterPlaylist: List<ChapterPlaylist>
 )
 typealias BookPlaylistResponse = ChapterBasedPlaylistResponse
 
