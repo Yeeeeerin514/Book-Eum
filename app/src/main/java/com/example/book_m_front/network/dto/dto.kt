@@ -168,15 +168,30 @@ data class BookUploadResponse(
 )
 
 // ================== 플레이리스트 ==================
-//새로운 플리 DTO
-data class ChapterBasedPlaylistResponse(
-    val success: Boolean = true,
-    val isbn: String,
-    val bookTitle: String,
-    val totalChapters: Int,
-    val totalTracks: Int,
-    val chapters: List<ChapterPlaylist>
-)
+data class MusicTrack(
+    val id: String,                    // 음악 고유 ID
+    val title: String,                 // 곡 제목
+    val artist: String,                // 아티스트
+    val album: String? = null,         // 앨범명
+    val duration: Long? = null,        // 재생 시간 (밀리초)
+    val downloadUrl: String? = null,   // 다운로드 URL
+    val audioUrl: String? = null,      // 스트리밍 URL (하위 호환성)
+    val albumArtUrl: String? = null,   // 앨범 아트 URL
+    val chapterIndex: Int? = null      // 챕터 인덱스 (챕터별 플레이리스트용)
+) {
+    /**
+     * 실제 오디오 URL 반환 (downloadUrl 우선, 없으면 audioUrl)
+     */
+    fun resolveAudioUrl(): String? = downloadUrl ?: audioUrl
+}
+//chapters -> tracks -> id
+
+
+/**
+ * 하위 호환성을 위한 타입 별칭
+ */
+typealias Music = MusicTrack
+
 
 /**
  * 챕터별 음악 목록
@@ -187,53 +202,29 @@ data class ChapterPlaylist(
     val tracks: List<MusicTrack>
 )
 
-data class MusicTrack(
-    val id: String,                    // music_001
-    val title: String,                 // "B-612"
-    val artist: String,                // "오왠"
-    val album: String?,                // "어린왕자 OST"
-    val duration: Long?,               // 225000 (밀리초)
-    val downloadUrl: String,           // "/music/music_001/download"
-    val albumArtUrl: String?           // "/music/music_001/artwork"
-)
 
-//chapters -> tracks -> id
 
-//------옛날 DTO-----------
-/**
- * 음악 트랙 정보
- */
-data class Music(
-    val id: String,
-    val title: String,
-    val artist: String,
-    val album: String,
-    val albumArtUrl: String? = null,
-    val audioUrl: String? = null,
-    val duration: Int? = null,  // 초 단위
-    val chapterIndex: Int? = null  // 챕터별 플레이리스트인 경우
+//새로운 플리 DTO
+data class ChapterBasedPlaylistResponse(
+    val success: Boolean = true,
+    val isbn: String,
+    val bookTitle: String,
+    val totalChapters: Int,
+    val totalTracks: Int,
+    val chapters: List<ChapterPlaylist>
 )
+typealias BookPlaylistResponse = ChapterBasedPlaylistResponse
 
 /**
  * 플레이리스트 응답
  */
-data class PlaylistResponse(
+data class SimplePlaylistResponse(
     val success: Boolean = true,
     val isbn: String,
     val playlistId: String? = null,
     val playlistName: String? = null,
     val playlist: List<Music>,
     val generatedAt: String? = null
-)
-
-/**
- * 플레이리스트 생성 응답
- */
-data class PlaylistGenerateResponse(
-    val success: Boolean,
-    val message: String,
-    val playlistId: String? = null,
-    val status: String  // "generating", "completed", "failed"
 )
 
 /**
@@ -248,6 +239,7 @@ data class PlaylistItem(
     val isLiked: Boolean = false
 )
 
+
 /**
  * 플레이리스트 목록 응답
  */
@@ -255,6 +247,19 @@ data class PlaylistListResponse(
     val success: Boolean = true,
     val playlists: List<PlaylistItem>
 )
+
+/**
+ * 플레이리스트 생성 응답
+ */
+data class PlaylistGenerateResponse(
+    val success: Boolean,
+    val message: String,
+    val playlistId: String? = null,
+    val status: String  // "generating", "completed", "failed"
+)
+
+
+
 
 // ================== 좋아요 ==================
 

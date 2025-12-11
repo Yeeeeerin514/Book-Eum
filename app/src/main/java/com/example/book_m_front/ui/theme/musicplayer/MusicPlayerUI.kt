@@ -785,10 +785,10 @@ fun formatTime(milliseconds: Long): String {
  * 프리뷰에서 사용할 가짜 음악 데이터 목록
  */
 private val samplePlaylist = listOf(
-    Music("1", "사건의 지평선", "윤하", "https://i.scdn.co/image/ab67616d0000b273c4033f2d0d2a84a2a3e6c3e0", ""),
-    Music("2", "Hype Boy", "NewJeans", "https://i.scdn.co/image/ab67616d0000b27318a03f488d57865c2763c298", ""),
-    Music("3", "LOVE DIVE", "IVE (아이브)", "https://i.scdn.co/image/ab67616d0000b273a2dd49b88f8324671a56f296", ""),
-    Music("4", "긴 제목 테스트: 이 노래의 제목은 화면을 넘어갈 정도로 아주 깁니다", "긴 아티스트 이름", "https://i.scdn.co/image/ab67616d0000b273a3a8a3a0d4b2b3a0d4b2b3a0", "")
+    Music("1", "사건의 지평선", "윤하", "https://i.scdn.co/image/ab67616d0000b273c4033f2d0d2a84a2a3e6c3e0", ),
+    Music("2", "Hype Boy", "NewJeans", "https://i.scdn.co/image/ab67616d0000b27318a03f488d57865c2763c298", ),
+    Music("3", "LOVE DIVE", "IVE (아이브)", "https://i.scdn.co/image/ab67616d0000b273a2dd49b88f8324671a56f296", ),
+    Music("4", "긴 제목 테스트: 이 노래의 제목은 화면을 넘어갈 정도로 아주 깁니다", "긴 아티스트 이름", "https://i.scdn.co/image/ab67616d0000b273a3a8a3a0d4b2b3a0d4b2b3a0", )
 )
 
 // --- PlaylistScreen 관련 프리뷰 ---

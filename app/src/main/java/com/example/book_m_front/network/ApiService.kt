@@ -239,7 +239,7 @@ interface ApiService {
     @GET("books/{isbn}/playlist")
     suspend fun getPlaylist(
         @Path("isbn") isbn: String
-    ): Response<PlaylistResponse>
+    ): Response<SimplePlaylistResponse>
 
     // ✨ --- 여기에 새로운 함수 추가 --- ✨
     /**
@@ -264,7 +264,7 @@ interface ApiService {
     suspend fun getPlaylistByChapter(
         @Path("isbn") isbn: String,
         @Path("chapterNum") chapterNum: Int
-    ): Response<PlaylistResponse>
+    ): Response<SimplePlaylistResponse>
 
     /**
      * AI 플레이리스트 생성 요청 (아직 생성되지 않은 경우)

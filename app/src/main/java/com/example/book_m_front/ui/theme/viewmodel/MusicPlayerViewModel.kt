@@ -3,9 +3,9 @@ package com.example.book_m_front.ui.theme.viewmodel
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.book_m_front.network.dto.Music
+import com.example.book_m_front.network.dto.MusicTrack
 import com.example.book_m_front.ui.theme.musicplayer.MusicController
-import com.example.book_m_front.ui.theme.musicplayer.MusicDownloadManager
+import com.example.book_m_front.ui.theme.musicplayer.MusicDownloadService
 import com.example.book_m_front.ui.theme.musicplayer.MusicRepository
 import com.example.book_m_front.ui.theme.musicplayer.NetworkResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,15 +16,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 🎵 음악 재생을 관리하는 통합 ViewModel (최종 수정)
- *
- * 모든 suspend 함수 호출을 viewModelScope.launch로 래핑
+ * 🎵 음악 재생을 관리하는 통합 ViewModel (함수명 수정 버전)
  */
 @HiltViewModel
 class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
     private val musicRepository: MusicRepository,
-    private val musicDownloadManager: MusicDownloadManager
+    private val musicDownloadService: MusicDownloadService  // ✅ 수정: 통합 서비스 사용
 ) : ViewModel() {
 
     companion object {
@@ -45,8 +43,8 @@ class MusicPlayerViewModel @Inject constructor(
     // 플레이리스트 관리
     // ========================================
 
-    private val _playlist = MutableStateFlow<List<Music>>(emptyList())
-    val playlist: StateFlow<List<Music>> = _playlist.asStateFlow()
+    private val _playlist = MutableStateFlow<List<MusicTrack>>(emptyList())
+    val playlist: StateFlow<List<MusicTrack>> = _playlist.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -86,7 +84,7 @@ class MusicPlayerViewModel @Inject constructor(
             val allLocalPaths = mutableListOf<String>()
 
             try {
-                val result = musicDownloadManager.downloadPlaylistByIsbn(
+                val result = musicDownloadService.downloadPlaylistByIsbn(
                     isbn = isbn,
 
                     onFirstChapterReady = { localPaths ->
@@ -95,7 +93,7 @@ class MusicPlayerViewModel @Inject constructor(
                         allLocalPaths.addAll(localPaths)
 
                         if (localPaths.isNotEmpty()) {
-                            playLocalFile(localPaths.first())   //viewmodel에 있는 함수
+                            playLocalFile(localPaths.first())
                             Log.d(TAG, "🎵 재생 시작: ${localPaths.first()}")
                         }
                     },
@@ -144,13 +142,9 @@ class MusicPlayerViewModel @Inject constructor(
     // 서버 URL 재생 (suspend 함수 처리)
     // ========================================
 
-    /**
-     * ✅ playTrack - viewModelScope.launch로 감싸기
-     */
-    fun playTrack(music: Music) {
+    fun playTrack(music: MusicTrack) {
         viewModelScope.launch {
             try {
-                // musicController.playMusic이 suspend 함수라면
                 musicController.playMusic(music)
             } catch (e: Exception) {
                 Log.e(TAG, "재생 오류", e)
@@ -159,13 +153,9 @@ class MusicPlayerViewModel @Inject constructor(
         }
     }
 
-    /**
-     * ✅ playPlaylist - viewModelScope.launch로 감싸기
-     */
-    fun playPlaylist(musicList: List<Music>, startIndex: Int = 0) {
+    fun playPlaylist(musicList: List<MusicTrack>, startIndex: Int = 0) {
         viewModelScope.launch {
             try {
-                // musicController.setPlaylist이 suspend 함수라면
                 musicController.setPlaylist(musicList, startIndex)
             } catch (e: Exception) {
                 Log.e(TAG, "플레이리스트 재생 오류", e)
@@ -206,7 +196,7 @@ class MusicPlayerViewModel @Inject constructor(
         }
     }
 
-    fun setPlaylist(playlist: List<Music>) {
+    fun setPlaylist(playlist: List<MusicTrack>) {
         _playlist.value = playlist
     }
 
@@ -254,12 +244,18 @@ class MusicPlayerViewModel @Inject constructor(
     // 캐시 관리
     // ========================================
 
+    /**
+     * ✅ 수정: getFormattedCacheSize() 사용
+     */
     fun getCacheSize(): String {
-        return musicDownloadManager.getCacheSizeFormatted()
+        return musicDownloadService.getFormattedCacheSize()
     }
 
+    /**
+     * 캐시 삭제
+     */
     fun clearCache(): Int {
-        return musicDownloadManager.clearAllCache()
+        return musicDownloadService.clearAllCache()
     }
 
     // ========================================
@@ -273,9 +269,10 @@ class MusicPlayerViewModel @Inject constructor(
 }
 
 /**
- * 재생 시간 포맷
+ * 재생 시간 포맷 (분:초)
  */
-fun formatTime(seconds: Long): String {
+fun formatTime(milliseconds: Long): String {
+    val seconds = milliseconds / 1000
     val minutes = seconds / 60
     val remainingSeconds = seconds % 60
     return "%d:%02d".format(minutes, remainingSeconds)
