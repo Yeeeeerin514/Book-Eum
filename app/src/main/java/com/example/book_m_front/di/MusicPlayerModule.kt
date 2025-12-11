@@ -2,6 +2,7 @@ package com.example.book_m_front.di
 
 import android.content.Context
 import com.example.book_m_front.ui.theme.musicplayer.MusicController
+import com.example.book_m_front.ui.theme.musicplayer.MusicDownloadManager
 import com.example.book_m_front.ui.theme.musicplayer.MusicDownloader
 import com.example.book_m_front.ui.theme.musicplayer.MusicRepository
 import com.example.book_m_front.ui.theme.musicplayer.MusicRepositoryImpl
@@ -13,15 +14,30 @@ import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
 /**
- * 🎵 음악 플레이어 관련 Hilt 의존성 주입 모듈
+ * 🎵 음악 재생 관련 의존성 주입 모듈 (업데이트)
  *
- * 이 모듈은 음악 재생에 필요한 객체들을 제공합니다:
- * - MusicController: 실제 음악 재생을 담당
- * - MusicRepository: 서버에서 플레이리스트를 가져옴
+ * 제공하는 싱글톤:
+ * 1. MusicDownloadManager - 음악 파일 다운로드 및 캐싱 (새로 추가!)
+ * 2. MusicController - 음악 재생 제어
+ * 3. MusicRepository - 서버 API 통신
  */
 @Module
 @InstallIn(SingletonComponent::class) // 앱 전체에서 사용 가능한 싱글톤
 object MusicPlayerModule {
+
+    /**
+     * ✅ 새로 추가: MusicDownloadManager 제공
+     *
+     * 음악 파일 다운로드 및 캐싱을 담당
+     */
+    @Provides
+    @Singleton
+    fun provideMusicDownloadManager(
+        @ApplicationContext context: Context
+    ): MusicDownloadManager {
+        return MusicDownloadManager(context)
+    }
+
 
     /**
      * MusicController를 제공합니다

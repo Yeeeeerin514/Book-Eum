@@ -223,6 +223,81 @@ class MusicController @Inject constructor(
         }
     }
 
+    /**
+     * 🎵 로컬 파일 재생 (새로 추가!)
+     *
+     * @param localPath 로컬 파일 절대 경로
+     * @param music 음악 메타데이터 (선택적)
+     */
+    fun playLocalFile(localPath: String, music: Music? = null) {
+        // 로컬 파일 URI로 변환
+        val uri = "file://$localPath"
+
+        // MediaItem 생성
+        val mediaItem = MediaItem.Builder()
+            .setUri(uri)  // ✅ file:// 스키마 사용
+            .setMediaId(music?.id ?: localPath)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(music?.title ?: "Local Music")
+                    .setArtist(music?.artist ?: "Unknown")
+                    .setArtworkUri(music?.albumArtUrl?.toUri())
+                    .build()
+            )
+            .build()
+
+        // 플레이어에 설정하고 재생
+        mediaController?.apply {
+            setMediaItem(mediaItem)
+            prepare()
+            play()
+        }
+
+        _currentMusic.value = music
+    }
+
+    /**
+     * 🎵 로컬 파일 플레이리스트 재생 (새로 추가!)
+     *
+     * @param localPaths 로컬 파일 경로 리스트
+     * @param musicList 음악 메타데이터 리스트 (선택적)
+     * @param startIndex 시작 인덱스
+     */
+    fun playLocalPlaylist(
+        localPaths: List<String>,
+        musicList: List<Music>? = null,
+        startIndex: Int = 0
+    ) {
+        // 로컬 파일들을 MediaItem 리스트로 변환
+        val mediaItems = localPaths.mapIndexed { index, path ->
+            val uri = "file://$path"
+            val music = musicList?.getOrNull(index)
+
+            MediaItem.Builder()
+                .setUri(uri)
+                .setMediaId(music?.id ?: path)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(music?.title ?: "Track ${index + 1}")
+                        .setArtist(music?.artist ?: "Unknown")
+                        .setArtworkUri(music?.albumArtUrl?.toUri())
+                        .build()
+                )
+                .build()
+        }
+
+        // 플레이어에 설정하고 재생
+        mediaController?.apply {
+            setMediaItems(mediaItems, startIndex, 0)
+            prepare()
+            play()
+        }
+
+        if (!musicList.isNullOrEmpty() && startIndex < musicList.size) {
+            _currentMusic.value = musicList[startIndex]
+        }
+    }
+
     // 재생
     fun play() {
         mediaController?.play()
