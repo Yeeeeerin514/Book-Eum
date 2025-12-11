@@ -11,7 +11,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 import retrofit2.http.*
 
 // 서버 기본 URL (실제 서버 주소로 변경 필요)
-private const val BASE_URL = "http://localhost:8080/"
+private const val BASE_URL = "http://10.0.2.2:8080/"
 // 개발 서버
 // private const val BASE_URL = "http://10.0.2.2:8080/api/v1/"  // Android Emulator용
 
@@ -112,7 +112,7 @@ interface ApiService {
     suspend fun searchBookByTitle(
         @Query("query") query: String,
         @Query("size") size: Int = 10,
-        @Query("page") page: Int = 5,
+        @Query("page") page: Int = 0,
         @Query("offset") offset: Int = 0,
         @Query("sort") sort: String = "sim"
     ): Response<SearchedBooks>

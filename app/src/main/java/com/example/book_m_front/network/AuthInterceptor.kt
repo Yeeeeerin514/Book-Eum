@@ -86,7 +86,7 @@ class AuthInterceptor(private val context: Context) : Interceptor {
  */
 object RetrofitClient {
 
-    private const val BASE_URL = "https://api.book-music.com/api/v1/"
+    private const val BASE_URL = "http://10.0.2.2:8080/"
 
     /**
      * Retrofit 인스턴스 생성
