@@ -1,6 +1,8 @@
 package com.example.book_m_front.ui.theme.viewmodel
 
+import android.app.Application
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.book_m_front.network.dto.MusicTrack
@@ -23,7 +25,8 @@ class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
     private val musicRepository: MusicRepository,
     private val musicDownloadService: MusicDownloadService  // ✅ 수정: 통합 서비스 사용
-) : ViewModel() {
+    , application: Application
+) : AndroidViewModel(application) {
 
     companion object {
         private const val TAG = "MusicPlayerViewModel"
