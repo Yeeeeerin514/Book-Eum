@@ -310,7 +310,27 @@ fun UserProfileScreen(
             onConfirm = { bookTitle, author, isbn, plot, fileUri ->
                 isUploading = true
                 scope.launch {
-                    try {
+                    val result = uploadBookToServer(
+                        context = context,
+                        title = bookTitle,
+                        author = author,
+                        isbn = isbn,
+                        plot = plot,
+                        fileUri = fileUri
+                    )
+                    Toast.makeText(
+                        context,
+                        "책이 성공적으로 추가되었습니다",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    showAddBookDialog = false
+
+                    // 업로드한 책 목록 새로고침
+                    Repository.get().getMyUploadedBooks().onSuccess {
+                        uploadedBooks = it
+                    }
+
+                    /*try {
                         val result = uploadBookToServer(
                             context = context,
                             title = bookTitle,
@@ -319,18 +339,12 @@ fun UserProfileScreen(
                             plot = plot,
                             fileUri = fileUri
                         )
-                        Toast.makeText(
-                            context,
-                            "책이 성공적으로 추가되었습니다",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        showAddBookDialog = false
 
                         // 업로드한 책 목록 새로고침
                         Repository.get().getMyUploadedBooks().onSuccess {
                             uploadedBooks = it
                         }
-                        /*if (result!=null) {
+                        if (result!=null) {
                             Toast.makeText(
                                 context,
                                 "책이 성공적으로 추가되었습니다",
@@ -348,7 +362,7 @@ fun UserProfileScreen(
                                 "업로드 실패",
                                 Toast.LENGTH_SHORT
                             ).show()
-                        }*/
+                        }
                     } catch (e: Exception) {
                         Toast.makeText(
                             context,
@@ -357,7 +371,7 @@ fun UserProfileScreen(
                         ).show()
                     } finally {
                         isUploading = false
-                    }
+                    }*/
                 }
             },
             darkGreen = AppColors.DeepGreen,
