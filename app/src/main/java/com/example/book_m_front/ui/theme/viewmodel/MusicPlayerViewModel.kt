@@ -3,8 +3,8 @@ package com.example.book_m_front.ui.theme.viewmodel
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.book_m_front.network.dto.Music
 import com.example.book_m_front.network.dto.MusicTrack
 import com.example.book_m_front.ui.theme.musicplayer.MusicController
 import com.example.book_m_front.ui.theme.musicplayer.MusicDownloadService
@@ -18,13 +18,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 🎵 음악 재생을 관리하는 통합 ViewModel (함수명 수정 버전)
+ * 🎵 음악 재생을 관리하는 통합 ViewModel
  */
 @HiltViewModel
 open class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
     private val musicRepository: MusicRepository,
-    private val musicDownloadService: MusicDownloadService,  // ✅ 수정: 통합 서비스 사용
+    private val musicDownloadService: MusicDownloadService,
     application: Application
 ) : AndroidViewModel(application) {
 
@@ -46,8 +46,8 @@ open class MusicPlayerViewModel @Inject constructor(
     // 플레이리스트 관리
     // ========================================
 
-    private val _playlist = MutableStateFlow<List<MusicTrack>>(emptyList())
-    val playlist: StateFlow<List<MusicTrack>> = _playlist.asStateFlow()
+    private val _playlist = MutableStateFlow<List<Music>>(emptyList())
+    val playlist: StateFlow<List<Music>> = _playlist.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -94,6 +94,10 @@ open class MusicPlayerViewModel @Inject constructor(
                         Log.d(TAG, "🎉 첫 챕터 준비 완료: ${localPaths.size}곡")
                         _firstChapterReady.value = true
                         allLocalPaths.addAll(localPaths)
+                        _localPlaylistPaths.value = ArrayList(allLocalPaths)
+
+                        // ✅ playlist 업데이트
+                        updatePlaylistFromPaths(allLocalPaths, isbn)
 
                         if (localPaths.isNotEmpty()) {
                             playLocalFile(localPaths.first())
@@ -110,12 +114,14 @@ open class MusicPlayerViewModel @Inject constructor(
                     onComplete = {
                         _isDownloading.value = false
                         _downloadProgress.value = 1f
-                        _localPlaylistPaths.value = allLocalPaths
+                        _localPlaylistPaths.value = ArrayList(allLocalPaths)
+
+                        // ✅ 최종 playlist 업데이트
+                        updatePlaylistFromPaths(allLocalPaths, isbn)
+
                         Log.d(TAG, "✅ 전체 다운로드 완료! 총 ${allLocalPaths.size}곡")
                     }
                 )
-                  
-
 
                 if (result.isFailure) {
                     _errorMessage.value = result.exceptionOrNull()?.message ?: "다운로드 실패"
@@ -129,6 +135,23 @@ open class MusicPlayerViewModel @Inject constructor(
                 Log.e(TAG, "예외 발생", e)
             }
         }
+    }
+
+    /**
+     * 로컬 경로 목록으로부터 playlist를 업데이트
+     */
+    private fun updatePlaylistFromPaths(paths: List<String>, isbn: String) {
+        val musicList = paths.mapIndexed { index, path ->
+            Music(
+                id = path,
+                title = "Track ${index + 1}",
+                artist = "Unknown",
+                album = isbn,
+                albumArtUrl = null
+            )
+        }
+        _playlist.value = musicList
+        Log.d(TAG, "📝 Playlist 업데이트: ${musicList.size}곡")
     }
 
     // ========================================
@@ -147,10 +170,17 @@ open class MusicPlayerViewModel @Inject constructor(
     // 서버 URL 재생 (suspend 함수 처리)
     // ========================================
 
-    fun playTrack(music: MusicTrack) {
+    fun playTrack(music: Music) {
         viewModelScope.launch {
             try {
-                musicController.playMusic(music)
+                // Music을 MusicTrack으로 변환
+                val track = MusicTrack(
+                    id = music.id,
+                    title = music.title,
+                    artist = music.artist,
+                    albumArtUrl = music.albumArtUrl
+                )
+                musicController.playMusic(track)
             } catch (e: Exception) {
                 Log.e(TAG, "재생 오류", e)
                 _errorMessage.value = "재생 실패: ${e.message}"
@@ -202,7 +232,17 @@ open class MusicPlayerViewModel @Inject constructor(
     }
 
     fun setPlaylist(playlist: List<MusicTrack>) {
-        _playlist.value = playlist
+        // MusicTrack을 Music으로 변환
+        val musicList = playlist.map { track ->
+            Music(
+                id = track.id,
+                title = track.title,
+                artist = track.artist,
+                album = "",
+                albumArtUrl = track.albumArtUrl
+            )
+        }
+        _playlist.value = musicList
     }
 
     // ========================================
@@ -249,16 +289,10 @@ open class MusicPlayerViewModel @Inject constructor(
     // 캐시 관리
     // ========================================
 
-    /**
-     * ✅ 수정: getFormattedCacheSize() 사용
-     */
     fun getCacheSize(): String {
         return musicDownloadService.getFormattedCacheSize()
     }
 
-    /**
-     * 캐시 삭제
-     */
     fun clearCache(): Int {
         return musicDownloadService.clearAllCache()
     }

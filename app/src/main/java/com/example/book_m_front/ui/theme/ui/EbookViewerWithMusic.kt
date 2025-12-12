@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -293,40 +294,44 @@ fun EbookViewerWithMusicScreen(
                 }
             }
 
-            // ✅ 음악 플레이어 (하단에 오버레이)
+            // ✅ 음악 플레이어 (MusicPlayerUI 사용)
             AnimatedVisibility(
                 visible = showMusicPlayer,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it }),
                 //modifier = Modifier.align(Alignment.BottomCenter)
             ) {
-                CompactMusicPlayer(
-                    currentTrack = currentTrack,
-                    playlist = localPlaylistPaths.mapIndexed { index, path ->
-                        // ✅ 로컬 경로를 MusicTrack 형태로 변환 (메타데이터가 있으면 사용)
-                        MusicTrack(
-                            id = path,
-                            title = "Track ${index + 1}",
-                            artist = bookAuthor,
-                            albumArtUrl = null
-                        )
-                    },
-                    isPlaying = isPlaying,
-                    progress = progress,
-                    currentPosition = currentPosition,
-                    duration = duration,
-                    isDownloading = isDownloading,
-                    downloadProgress = downloadProgress,
-                    onPlayPause = { musicPlayerViewModel.togglePlayPause() },
-                    onNext = { musicPlayerViewModel.skipToNext() },
-                    onPrevious = { musicPlayerViewModel.skipToPrevious() },
-                    onSeek = { position -> musicPlayerViewModel.seekTo(position) },
-                    onTrackClick = { index ->
-                        if (index < localPlaylistPaths.size) {
-                            musicPlayerViewModel.playLocalFile(localPlaylistPaths[index])
+                // MusicPlayerUI를 Card로 감싸서 하단에 표시
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(0.6f), // 화면의 60% 높이
+                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+                ) {
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // MusicPlayerUI 사용
+                        MusicPlayerUI(viewModel = musicPlayerViewModel)
+
+                        // 닫기 버튼
+                        IconButton(
+                            onClick = { showMusicPlayer = false },
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(8.dp)
+                                .background(Color.White.copy(alpha = 0.7f), CircleShape)
+                        ) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = "닫기",
+                                tint = Color.Gray
+                            )
                         }
                     }
-                )
+                }
             }
         }
 
@@ -535,255 +540,6 @@ fun FontSizeDialog(
             }
         }
     )
-}
-
-// ============================================
-// ✅ 수정된 컴팩트 음악 플레이어
-// ============================================
-
-@Composable
-fun CompactMusicPlayer(
-    currentTrack: MusicTrack?,
-    playlist: List<MusicTrack>,
-    isPlaying: Boolean,
-    progress: Float,
-    currentPosition: Long,
-    duration: Long,
-    isDownloading: Boolean,
-    downloadProgress: Float,
-    onPlayPause: () -> Unit,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit,
-    onSeek: (Long) -> Unit,
-    onTrackClick: (Int) -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2D5F4D)
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            // ✅ 다운로드 진행 상태 표시
-            if (isDownloading) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        "음악 다운로드 중...",
-                        color = Color.White,
-                        fontSize = 14.sp
-                    )
-                    Text(
-                        "${(downloadProgress * 100).toInt()}%",
-                        color = Color.White,
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-                LinearProgressIndicator(
-                    progress = downloadProgress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    color = Color.White,
-                    trackColor = Color.White.copy(alpha = 0.3f)
-                )
-                Divider(
-                    color = Color.White.copy(alpha = 0.3f),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            // 플레이리스트 제목
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    "플레이리스트 (${playlist.size}곡)",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-
-            Divider(
-                color = Color.White.copy(alpha = 0.3f),
-                modifier = Modifier.padding(vertical = 12.dp)
-            )
-
-            // ✅ 현재 재생 중인 곡
-            if (currentTrack != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 앨범 아트
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = Color.White
-                        )
-                    }
-
-                    Spacer(Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            currentTrack.title,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp,
-                            maxLines = 1
-                        )
-                        Text(
-                            currentTrack.artist,
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 13.sp,
-                            maxLines = 1
-                        )
-                    }
-
-                    IconButton(onClick = onPlayPause) {
-                        Icon(
-                            if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // 진행 바
-                Column {
-                    Slider(
-                        value = currentPosition.toFloat(),
-                        onValueChange = {},
-                        onValueChangeFinished = {},
-                        valueRange = 0f..duration.coerceAtLeast(1).toFloat(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                        )
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            formatTime(currentPosition),
-                            color = Color.White.copy(0.7f),
-                            fontSize = 12.sp
-                        )
-                        Text(
-                            formatTime(duration),
-                            color = Color.White.copy(0.7f),
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-            }
-
-            // ✅ 플레이리스트 목록
-            if (playlist.isNotEmpty()) {
-                Text(
-                    "플레이리스트",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                // 최대 3곡만 표시
-                playlist.take(3).forEachIndexed { index, track ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onTrackClick(index) }
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "${index + 1}",
-                            color = Color.White.copy(0.6f),
-                            fontSize = 14.sp,
-                            modifier = Modifier.width(24.dp)
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                track.title,
-                                color = Color.White,
-                                fontSize = 14.sp,
-                                maxLines = 1
-                            )
-                            Text(
-                                track.artist,
-                                color = Color.White.copy(0.6f),
-                                fontSize = 12.sp,
-                                maxLines = 1
-                            )
-                        }
-                        if (currentTrack?.id == track.id) {
-                            Icon(
-                                if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    }
-                }
-
-                // 더 많은 곡이 있으면 표시
-                if (playlist.size > 3) {
-                    Text(
-                        "외 ${playlist.size - 3}곡",
-                        color = Color.White.copy(0.5f),
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(top = 8.dp)
-                    )
-                }
-            } else {
-                // 플레이리스트가 비어있을 때
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "플레이리스트가 비어있습니다",
-                        color = Color.White.copy(0.5f),
-                        fontSize = 14.sp
-                    )
-                }
-            }
-        }
-    }
 }
 
 // ============================================

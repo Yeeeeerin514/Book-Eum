@@ -2,6 +2,7 @@ package com.example.book_m_front.ui.theme.musicplayer
 
 import android.content.ComponentName
 import android.content.Context
+import android.util.Log
 import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -21,19 +22,20 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 🎵 음악 재생 컨트롤러 (중복 제거 버전)
- *
- * MusicDownloadService를 사용하여 음악 다운로드 및 재생 관리
+ * 🎵 음악 재생 컨트롤러 (디버깅 버전)
  */
 class MusicController @Inject constructor(
     @ApplicationContext private val context: Context,
     private val musicDownloadService: MusicDownloadService
 ) {
+    companion object {
+        private const val TAG = "MusicController"
+    }
+
     // MediaController: 백그라운드 서비스의 플레이어를 제어
     private var mediaController: MediaController? = null
 
     // StateFlow: UI에서 관찰 가능한 상태
-
     private val _playerState = MutableStateFlow<PlayerState>(PlayerState.Idle)
     val playerState: StateFlow<PlayerState> = _playerState.asStateFlow()
 
@@ -50,6 +52,7 @@ class MusicController @Inject constructor(
     val currentMusic: StateFlow<MusicTrack?> = _currentMusic.asStateFlow()
 
     init {
+        Log.d(TAG, "🎵 MusicController 초기화 시작")
         initializeController()
     }
 
@@ -57,7 +60,12 @@ class MusicController @Inject constructor(
      * MediaController 초기화 - 백그라운드 서비스와 연결
      */
     fun initializeController() {
-        if (mediaController != null) return
+        if (mediaController != null) {
+            Log.d(TAG, "⚠️ MediaController 이미 초기화됨")
+            return
+        }
+
+        Log.d(TAG, "🔄 MediaController 초기화 중...")
 
         val sessionToken = SessionToken(
             context,
@@ -66,8 +74,13 @@ class MusicController @Inject constructor(
 
         val controllerFuture = MediaController.Builder(context, sessionToken).buildAsync()
         controllerFuture.addListener({
-            mediaController = controllerFuture.get()
-            setupPlayerListener()
+            try {
+                mediaController = controllerFuture.get()
+                Log.d(TAG, "✅ MediaController 초기화 완료!")
+                setupPlayerListener()
+            } catch (e: Exception) {
+                Log.e(TAG, "❌ MediaController 초기화 실패", e)
+            }
         }, MoreExecutors.directExecutor())
     }
 
@@ -77,6 +90,15 @@ class MusicController @Inject constructor(
     private fun setupPlayerListener() {
         mediaController?.addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(playbackState: Int) {
+                val stateName = when (playbackState) {
+                    Player.STATE_IDLE -> "IDLE"
+                    Player.STATE_BUFFERING -> "BUFFERING"
+                    Player.STATE_READY -> "READY"
+                    Player.STATE_ENDED -> "ENDED"
+                    else -> "UNKNOWN"
+                }
+                Log.d(TAG, "🎵 재생 상태 변경: $stateName")
+
                 when (playbackState) {
                     Player.STATE_IDLE -> _playerState.value = PlayerState.Idle
                     Player.STATE_BUFFERING -> _playerState.value = PlayerState.Buffering
@@ -86,6 +108,7 @@ class MusicController @Inject constructor(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                Log.d(TAG, "🎵 재생 중: $isPlaying")
                 _isPlaying.value = isPlaying
                 if (isPlaying) {
                     startProgressUpdate()
@@ -93,9 +116,12 @@ class MusicController @Inject constructor(
             }
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-                _duration.value = mediaController?.duration ?: 0L
+                val duration = mediaController?.duration ?: 0L
+                _duration.value = duration
+                Log.d(TAG, "🎵 곡 전환: ${mediaItem?.mediaMetadata?.title}, duration: ${duration}ms")
             }
         })
+        Log.d(TAG, "✅ 플레이어 리스너 설정 완료")
     }
 
     /**
@@ -119,14 +145,18 @@ class MusicController @Inject constructor(
      */
     suspend fun playMusic(music: MusicTrack): Result<Unit> {
         return try {
+            Log.d(TAG, "🎵 음악 재생 요청: ${music.title}")
+
             // 1. 다운로드
             val downloadResult = musicDownloadService.downloadTrack(music)
 
             if (downloadResult.isFailure) {
+                Log.e(TAG, "❌ 다운로드 실패: ${music.title}")
                 return Result.failure(downloadResult.exceptionOrNull()!!)
             }
 
             val localPath = downloadResult.getOrNull()!!
+            Log.d(TAG, "✅ 다운로드 완료: $localPath")
 
             // 2. 재생
             playLocalFile(localPath, music)
@@ -135,6 +165,7 @@ class MusicController @Inject constructor(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            Log.e(TAG, "❌ 재생 중 오류", e)
             Result.failure(e)
         }
     }
@@ -144,6 +175,8 @@ class MusicController @Inject constructor(
      */
     suspend fun setPlaylist(musicList: List<MusicTrack>, startIndex: Int = 0): Result<Unit> {
         return try {
+            Log.d(TAG, "🎵 플레이리스트 재생 요청: ${musicList.size}곡")
+
             // 1. 모든 곡 다운로드
             val localPaths = mutableListOf<String>()
 
@@ -156,8 +189,11 @@ class MusicController @Inject constructor(
             }
 
             if (localPaths.isEmpty()) {
+                Log.e(TAG, "❌ 다운로드된 곡이 없습니다")
                 return Result.failure(Exception("다운로드된 곡이 없습니다"))
             }
+
+            Log.d(TAG, "✅ ${localPaths.size}곡 다운로드 완료")
 
             // 2. 재생
             playLocalPlaylist(localPaths, musicList, startIndex)
@@ -169,6 +205,7 @@ class MusicController @Inject constructor(
             Result.success(Unit)
 
         } catch (e: Exception) {
+            Log.e(TAG, "❌ 플레이리스트 재생 중 오류", e)
             Result.failure(e)
         }
     }
@@ -177,7 +214,26 @@ class MusicController @Inject constructor(
      * 로컬 파일 재생
      */
     fun playLocalFile(localPath: String, music: MusicTrack? = null) {
+        Log.d(TAG, "🎵 로컬 파일 재생 시도: $localPath")
+
+        if (mediaController == null) {
+            Log.e(TAG, "❌ MediaController가 null입니다! 초기화 재시도...")
+            initializeController()
+
+            // 초기화 후 재시도
+            CoroutineScope(Dispatchers.Main).launch {
+                delay(500)
+                if (mediaController != null) {
+                    playLocalFile(localPath, music)
+                } else {
+                    Log.e(TAG, "❌ MediaController 초기화 실패")
+                }
+            }
+            return
+        }
+
         val uri = "file://$localPath"
+        Log.d(TAG, "📂 파일 URI: $uri")
 
         val mediaItem = MediaItem.Builder()
             .setUri(uri)
@@ -192,12 +248,20 @@ class MusicController @Inject constructor(
             .build()
 
         mediaController?.apply {
+            Log.d(TAG, "🎵 MediaItem 설정 중...")
             setMediaItem(mediaItem)
             prepare()
             play()
+            Log.d(TAG, "✅ 재생 시작 명령 완료")
         }
 
         _currentMusic.value = music
+
+        // 재생 상태 확인
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(1000)
+            Log.d(TAG, "🔍 재생 상태 체크 - isPlaying: ${mediaController?.isPlaying}, playbackState: ${mediaController?.playbackState}")
+        }
     }
 
     /**
@@ -208,9 +272,19 @@ class MusicController @Inject constructor(
         musicList: List<MusicTrack>? = null,
         startIndex: Int = 0
     ) {
+        Log.d(TAG, "🎵 로컬 플레이리스트 재생 시도: ${localPaths.size}곡, startIndex=$startIndex")
+
+        if (mediaController == null) {
+            Log.e(TAG, "❌ MediaController가 null입니다!")
+            initializeController()
+            return
+        }
+
         val mediaItems = localPaths.mapIndexed { index, path ->
             val uri = "file://$path"
             val music = musicList?.getOrNull(index)
+
+            Log.d(TAG, "📂 [$index] URI: $uri")
 
             MediaItem.Builder()
                 .setUri(uri)
@@ -226,13 +300,21 @@ class MusicController @Inject constructor(
         }
 
         mediaController?.apply {
+            Log.d(TAG, "🎵 ${mediaItems.size}개 MediaItem 설정 중...")
             setMediaItems(mediaItems, startIndex, 0)
             prepare()
             play()
+            Log.d(TAG, "✅ 플레이리스트 재생 시작 명령 완료")
         }
 
         if (!musicList.isNullOrEmpty() && startIndex < musicList.size) {
             _currentMusic.value = musicList[startIndex]
+        }
+
+        // 재생 상태 확인
+        CoroutineScope(Dispatchers.Main).launch {
+            delay(1000)
+            Log.d(TAG, "🔍 플레이리스트 상태 체크 - isPlaying: ${mediaController?.isPlaying}, currentIndex: ${mediaController?.currentMediaItemIndex}")
         }
     }
 
@@ -241,34 +323,42 @@ class MusicController @Inject constructor(
     // ========================================
 
     fun play() {
+        Log.d(TAG, "▶️ 재생 요청")
         mediaController?.play()
     }
 
     fun pause() {
+        Log.d(TAG, "⏸️ 일시정지 요청")
         mediaController?.pause()
     }
 
     fun seekTo(position: Long) {
+        Log.d(TAG, "⏩ Seek 요청: ${position}ms")
         mediaController?.seekTo(position)
     }
 
     fun seekForward() {
+        Log.d(TAG, "⏩ 앞으로 이동")
         mediaController?.seekForward()
     }
 
     fun seekBackward() {
+        Log.d(TAG, "⏪ 뒤로 이동")
         mediaController?.seekBack()
     }
 
     fun skipToNext() {
+        Log.d(TAG, "⏭️ 다음 곡")
         mediaController?.seekToNext()
     }
 
     fun skipToPrevious() {
+        Log.d(TAG, "⏮️ 이전 곡")
         mediaController?.seekToPrevious()
     }
 
     fun release() {
+        Log.d(TAG, "🛑 MediaController 해제")
         mediaController?.release()
         mediaController = null
     }
