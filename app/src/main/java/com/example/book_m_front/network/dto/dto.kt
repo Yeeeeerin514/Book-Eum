@@ -198,7 +198,7 @@ typealias Music = MusicTrack
  */
 data class ChapterPlaylist(
     val chapterNum: Int,
-    val chapterTitle: String= "chapter title",
+    //val chapterTitle: String = "chapter title",
     val musics: List<MusicTrack>
 )
 

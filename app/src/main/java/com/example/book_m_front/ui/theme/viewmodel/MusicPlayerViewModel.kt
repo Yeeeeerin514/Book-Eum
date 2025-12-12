@@ -3,8 +3,8 @@ package com.example.book_m_front.ui.theme.viewmodel
 import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.book_m_front.network.dto.Music
 import com.example.book_m_front.network.dto.MusicTrack
 import com.example.book_m_front.ui.theme.musicplayer.MusicController
 import com.example.book_m_front.ui.theme.musicplayer.MusicDownloadService
@@ -18,13 +18,13 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * 🎵 음악 재생을 관리하는 통합 ViewModel
+ * 🎵 음악 재생을 관리하는 통합 ViewModel (함수명 수정 버전)
  */
 @HiltViewModel
 open class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
     private val musicRepository: MusicRepository,
-    private val musicDownloadService: MusicDownloadService,
+    private val musicDownloadService: MusicDownloadService,  // ✅ 수정: 통합 서비스 사용
     application: Application
 ) : AndroidViewModel(application) {
 
@@ -46,8 +46,8 @@ open class MusicPlayerViewModel @Inject constructor(
     // 플레이리스트 관리
     // ========================================
 
-    private val _playlist = MutableStateFlow<List<Music>>(emptyList())
-    val playlist: StateFlow<List<Music>> = _playlist.asStateFlow()
+    private val _playlist = MutableStateFlow<List<MusicTrack>>(emptyList())
+    val playlist: StateFlow<List<MusicTrack>> = _playlist.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -77,98 +77,57 @@ open class MusicPlayerViewModel @Inject constructor(
 
     fun loadAndPlayPlaylist(isbn: String) {
         viewModelScope.launch {
-            Log.d(TAG, "📖 플레이리스트 로드 시작: ISBN=$isbn")
+            Log.d(TAG, "플레이리스트 로드 시작: ISBN=$isbn")
 
             _isDownloading.value = true
             _downloadProgress.value = 0f
             _firstChapterReady.value = false
             _errorMessage.value = null
 
-            val allDownloadedTracks = mutableListOf<MusicDownloadService.DownloadedTrack>()
+            val allLocalPaths = mutableListOf<String>()
 
             try {
                 val result = musicDownloadService.downloadPlaylistByIsbn(
                     isbn = isbn,
 
-                    onFirstChapterReady = { downloadedTracks ->
-                        Log.d(TAG, "🎉 첫 챕터 준비 완료: ${downloadedTracks.size}곡")
+                    onFirstChapterReady = { localPaths ->
+                        Log.d(TAG, "🎉 첫 챕터 준비 완료: ${localPaths.size}곡")
                         _firstChapterReady.value = true
-                        allDownloadedTracks.addAll(downloadedTracks)
+                        allLocalPaths.addAll(localPaths)
 
-                        // ✅ 로컬 경로와 메타데이터 분리
-                        val localPaths = downloadedTracks.map { it.localPath }
-                        val tracks = downloadedTracks.map { it.metadata }
-
-                        _localPlaylistPaths.value = ArrayList(localPaths)
-
-                        // ✅ playlist 업데이트 (메타데이터 포함)
-                        updatePlaylistFromTracks(tracks)
-
-                        if (downloadedTracks.isNotEmpty()) {
-                            val firstTrack = downloadedTracks.first()
-                            Log.d(TAG, "🎵 재생 시작: ${firstTrack.metadata.title}")
-
-                            // ✅ 메타데이터와 함께 재생
-                            musicController.playLocalFile(firstTrack.localPath, firstTrack.metadata)
+                        if (localPaths.isNotEmpty()) {
+                            playLocalFile(localPaths.first())
+                            Log.d(TAG, "🎵 재생 시작: ${localPaths.first()}")
                         }
                     },
 
                     onProgress = { current, total ->
                         val progress = current.toFloat() / total.toFloat()
                         _downloadProgress.value = progress
-                        Log.d(TAG, "📥 다운로드 진행: $current/$total (${(progress * 100).toInt()}%)")
+                        Log.d(TAG, "다운로드 진행: $current/$total (${(progress * 100).toInt()}%)")
                     },
 
-                    onComplete = { downloadedTracks ->
+                    onComplete = {
                         _isDownloading.value = false
                         _downloadProgress.value = 1f
-                        allDownloadedTracks.clear()
-                        allDownloadedTracks.addAll(downloadedTracks)
-
-                        // ✅ 로컬 경로와 메타데이터 분리
-                        val localPaths = downloadedTracks.map { it.localPath }
-                        val tracks = downloadedTracks.map { it.metadata }
-
-                        _localPlaylistPaths.value = ArrayList(localPaths)
-
-                        // ✅ 최종 playlist 업데이트
-                        updatePlaylistFromTracks(tracks)
-
-                        Log.d(TAG, "✅ 전체 다운로드 완료! 총 ${downloadedTracks.size}곡")
+                        _localPlaylistPaths.value = allLocalPaths
+                        Log.d(TAG, "✅ 전체 다운로드 완료! 총 ${allLocalPaths.size}곡")
                     }
                 )
+
+
 
                 if (result.isFailure) {
                     _errorMessage.value = result.exceptionOrNull()?.message ?: "다운로드 실패"
                     _isDownloading.value = false
-                    Log.e(TAG, "❌ 다운로드 실패", result.exceptionOrNull())
+                    Log.e(TAG, "다운로드 실패", result.exceptionOrNull())
                 }
 
             } catch (e: Exception) {
                 _errorMessage.value = "오류 발생: ${e.message}"
                 _isDownloading.value = false
-                Log.e(TAG, "❌ 예외 발생", e)
+                Log.e(TAG, "예외 발생", e)
             }
-        }
-    }
-
-    /**
-     * MusicTrack 목록으로부터 playlist를 업데이트
-     */
-    private fun updatePlaylistFromTracks(tracks: List<MusicTrack>) {
-        val musicList = tracks.map { track ->
-            Music(
-                id = track.id,
-                title = track.title,
-                artist = track.artist,
-                album = "",
-                albumArtUrl = track.albumArtUrl
-            )
-        }
-        _playlist.value = musicList
-        Log.d(TAG, "📝 Playlist 업데이트: ${musicList.size}곡")
-        musicList.forEachIndexed { index, music ->
-            Log.d(TAG, "   [$index] ${music.title} - ${music.artist}")
         }
     }
 
@@ -188,17 +147,10 @@ open class MusicPlayerViewModel @Inject constructor(
     // 서버 URL 재생 (suspend 함수 처리)
     // ========================================
 
-    fun playTrack(music: Music) {
+    fun playTrack(music: MusicTrack) {
         viewModelScope.launch {
             try {
-                // Music을 MusicTrack으로 변환
-                val track = MusicTrack(
-                    id = music.id,
-                    title = music.title,
-                    artist = music.artist,
-                    albumArtUrl = music.albumArtUrl
-                )
-                musicController.playMusic(track)
+                musicController.playMusic(music)
             } catch (e: Exception) {
                 Log.e(TAG, "재생 오류", e)
                 _errorMessage.value = "재생 실패: ${e.message}"
@@ -250,17 +202,7 @@ open class MusicPlayerViewModel @Inject constructor(
     }
 
     fun setPlaylist(playlist: List<MusicTrack>) {
-        // MusicTrack을 Music으로 변환
-        val musicList = playlist.map { track ->
-            Music(
-                id = track.id,
-                title = track.title,
-                artist = track.artist,
-                album = "",
-                albumArtUrl = track.albumArtUrl
-            )
-        }
-        _playlist.value = musicList
+        _playlist.value = playlist
     }
 
     // ========================================
@@ -307,10 +249,16 @@ open class MusicPlayerViewModel @Inject constructor(
     // 캐시 관리
     // ========================================
 
+    /**
+     * ✅ 수정: getFormattedCacheSize() 사용
+     */
     fun getCacheSize(): String {
         return musicDownloadService.getFormattedCacheSize()
     }
 
+    /**
+     * 캐시 삭제
+     */
     fun clearCache(): Int {
         return musicDownloadService.clearAllCache()
     }

@@ -125,7 +125,7 @@ class MusicDownloadService @Inject constructor(
             val firstChapter = playlist.chapterPlaylist.firstOrNull()
 
             if (firstChapter != null) {
-                Log.d(TAG, "📥 첫 챕터 다운로드 시작: ${firstChapter.chapterTitle}")
+                Log.d(TAG, "📥 첫 챕터 다운로드 시작: ${firstChapter.chapterNum}")
 
                 val firstChapterTracks = mutableListOf<DownloadedTrack>()
 
@@ -158,7 +158,7 @@ class MusicDownloadService @Inject constructor(
             val remainingChapters = playlist.chapterPlaylist.drop(1)
 
             for ((chapterIndex, chapter) in remainingChapters.withIndex()) {
-                Log.d(TAG, "📥 챕터 [${chapterIndex + 2}/${playlist.totalChapters}] 다운로드: ${chapter.chapterTitle}")
+                Log.d(TAG, "📥 챕터 [${chapterIndex + 2}/${playlist.totalChapters}] 다운로드: ${chapter.chapterNum}")
 
                 for (track in chapter.musics) {
                     val result = downloadTrack(track)
