@@ -3,7 +3,7 @@ import asyncio
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List
 import json
 import urllib.parse
 
@@ -14,7 +14,7 @@ app = FastAPI(title="GCP Music Server")
 
 # --- 설정 ---
 BATCH_SIZE = 4          # 최대 묶음 크기
-BATCH_TIMEOUT = 2.0     # 요청이 다 안 차도 이 시간 지나면 바로 처리 (초)
+BATCH_TIMEOUT = 5.0     # 요청이 다 안 차도 이 시간 지나면 바로 처리 (초)
 
 # --- 데이터 모델 ---
 # 음악 생성 요청 모델 

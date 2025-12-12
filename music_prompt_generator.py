@@ -1,5 +1,5 @@
 import random
-from typing import Dict, List
+from typing import Dict
 
 def generate_music_prompt(analysis_json: dict,
                           max_instruments=3,

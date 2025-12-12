@@ -10,7 +10,7 @@ from typing import Tuple, List
 # ------------------------------------------
 #  성능 모드 선택
 #  1 : FP32 기본 (가장 안정적)
-#  2 : FP16 (속도 ↑, VRAM ↓)
+#  2 : FP16 (속도 UP, VRAM DOWN)
 # ------------------------------------------
 PERFORMANCE_MODE = 1
 
@@ -58,7 +58,7 @@ def load_model(force_reload: bool = False):
         print("⚙️  설정: FP16 (Half Precision)")
         _model = MusicgenForConditionalGeneration.from_pretrained(
                 model_id,
-                torch_dtype=torch.float16,
+                dtype=torch.float16,
             )
         _model = _model.to(device)
 
@@ -84,7 +84,6 @@ def generate_music_batch(
         batch_size = len(prompts)
 
         print(f"\n🎵 Generating Batch Music... Size: {batch_size}")
-        print(f"📝 Prompts: {prompts}")
 
         start_time = time.time()
 
