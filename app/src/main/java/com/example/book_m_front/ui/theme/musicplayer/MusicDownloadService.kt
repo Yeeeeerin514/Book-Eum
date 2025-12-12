@@ -107,7 +107,7 @@ class MusicDownloadService @Inject constructor(
             // 1. 플레이리스트 메타데이터 조회
             val response = Api.retrofitService.getChapterBasedPlaylist(isbn)
 
-            if (!response.isSuccessful || response.body() == null) {
+            if (response.body() == null) {
                 Log.e(TAG, "❌ 플레이리스트 조회 실패: ${response.code()}")
                 return@withContext Result.failure(
                     Exception("플레이리스트 조회 실패: ${response.code()}")
