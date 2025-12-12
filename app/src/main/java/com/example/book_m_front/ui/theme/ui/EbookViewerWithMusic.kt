@@ -238,7 +238,7 @@ fun EbookViewerWithMusicScreen(
                             }
                         }
                     }
-                    epubContent != null -> {
+                    /*epubContent != null -> {
                         ImprovedEbookContent(
                             chapter = epubContent!!.chapters.getOrNull(currentChapterIndex),
                             fontSize = fontSize,
@@ -255,7 +255,7 @@ fun EbookViewerWithMusicScreen(
                                 }
                             }
                         )
-                    }
+                    }*/
                 }
             }
 
@@ -564,531 +564,124 @@ private val mockPlaylist = listOf(
 // ============================================
 // 1. 정상 로드 상태 (기본)
 // ============================================
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Preview(
-    name = "1. 정상 상태",
+    name = "1. 이북 뷰어 - 라이트 모드",
     showBackground = true,
-    device = "spec:width=411dp,height=891dp"
+    showSystemUi = true
 )
 @Composable
-fun EbookViewerWithMusicPreview_Normal() {
-    var epubContent by remember { mutableStateOf<EpubContent?>(mockEpubContent) }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var currentChapterIndex by remember { mutableStateOf(0) }
-    var showChapterList by remember { mutableStateOf(false) }
-    var showFontSizeDialog by remember { mutableStateOf(false) }
-    var fontSize by remember { mutableStateOf(16) }
-    var isDarkMode by remember { mutableStateOf(false) }
-    var showMusicPlayer by remember { mutableStateOf(false) }
-
-    val backgroundColor = if (isDarkMode) Color(0xFF1A1A1A) else Color(0xFFFFFBF5)
-    val textColor = if (isDarkMode) Color(0xFFE0E0E0) else Color(0xFF2C2C2C)
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            // TopAppBar
-            TopAppBar(
-                title = {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = epubContent?.title ?: "책 제목",
-                            color = textColor,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "${currentChapterIndex + 1} / ${epubContent?.chapters?.size ?: 0}",
-                            color = textColor.copy(alpha = 0.6f),
-                            fontSize = 12.sp
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.ArrowBack, "뒤로가기", tint = textColor)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { showChapterList = true }) {
-                        Icon(Icons.Default.List, "챕터", tint = textColor)
-                    }
-                    IconButton(onClick = { showFontSizeDialog = true }) {
-                        Icon(Icons.Default.TextFields, "글자크기", tint = textColor)
-                    }
-                    IconButton(onClick = { isDarkMode = !isDarkMode }) {
-                        Icon(
-                            if (isDarkMode) Icons.Default.LightMode else Icons.Default.DarkMode,
-                            "다크모드",
-                            tint = textColor
-                        )
-                    }
-                    IconButton(onClick = { showMusicPlayer = !showMusicPlayer }) {
-                        Icon(
-                            if (showMusicPlayer) Icons.Default.MusicOff else Icons.Default.MusicNote,
-                            "음악",
-                            tint = textColor
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = backgroundColor
-                )
-            )
-
-            // 본문 (간단한 텍스트로 대체)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth()
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = epubContent?.chapters?.getOrNull(currentChapterIndex)?.content ?: "",
-                    color = textColor,
-                    fontSize = fontSize.sp,
-                    lineHeight = (fontSize * 1.6).sp
-                )
-            }
-
-            // 하단 네비게이션
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(backgroundColor)
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                TextButton(
-                    onClick = {
-                        if (currentChapterIndex > 0) currentChapterIndex--
-                    },
-                    enabled = currentChapterIndex > 0
-                ) {
-                    Icon(Icons.Default.ArrowBack, null, tint = textColor)
-                    Spacer(Modifier.width(4.dp))
-                    Text("이전", color = textColor)
-                }
-
-                TextButton(
-                    onClick = {
-                        if (currentChapterIndex < (epubContent?.chapters?.size ?: 0) - 1) {
-                            currentChapterIndex++
+fun EbookViewerPreview_Light() {
+    MaterialTheme {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFF5F8F5))
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text("어린왕자", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                            Text("1 / 3", fontSize = 12.sp, color = Color.Gray)
                         }
                     },
-                    enabled = currentChapterIndex < (epubContent?.chapters?.size ?: 0) - 1
+                    navigationIcon = {
+                        IconButton(onClick = {}) {
+                            Icon(Icons.Default.ArrowBack, "뒤로가기")
+                        }
+                    },
+                    actions = {
+                        IconButton(onClick = {}) { Icon(Icons.Default.List, null) }
+                        IconButton(onClick = {}) { Icon(Icons.Default.TextFields, null) }
+                        IconButton(onClick = {}) { Icon(Icons.Default.DarkMode, null) }
+                        IconButton(onClick = {}) { Icon(Icons.Default.MusicNote, null) }
+                    }
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(16.dp)
                 ) {
-                    Text("다음", color = textColor)
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.ArrowForward, null, tint = textColor)
+                    Text("어른들은 숫자를 좋아한다...", fontSize = 16.sp, lineHeight = 28.sp)
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = {}, enabled = false) { Text("이전") }
+                    Text("1 / 3", modifier = Modifier.align(Alignment.CenterVertically))
+                    Button(onClick = {}) { Text("다음") }
                 }
             }
         }
+    }
+}
 
-        // 음악 플레이어 (간단한 미니 플레이어)
-        AnimatedVisibility(
-            visible = showMusicPlayer,
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(
+    name = "2. 음악 플레이어 열림",
+    showBackground = true,
+    showSystemUi = true
+)
+@Composable
+fun EbookViewerPreview_WithMusicPlayer() {
+    MaterialTheme {
+        Box(modifier = Modifier.fillMaxSize().background(Color(0xFFF5F8F5))) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                TopAppBar(
+                    title = { Text("어린왕자") },
+                    navigationIcon = {
+                        IconButton(onClick = {}) { Icon(Icons.Default.ArrowBack, null) }
+                    }
+                )
+                Box(modifier = Modifier.weight(1f).padding(16.dp)) {
+                    Text("본문 내용...")
+                }
+            }
+
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color(0xFF2D5F4D)
-                ),
-                shape = RoundedCornerShape(16.dp)
+                    .fillMaxHeight(0.6f)
+                    .align(Alignment.BottomCenter),
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                elevation = CardDefaults.cardElevation(8.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                mockPlaylist[0].title ?: "곡 제목",
-                                color = Color.White,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                mockPlaylist[0].artist ?: "아티스트",
-                                color = Color.White.copy(alpha = 0.7f),
-                                fontSize = 12.sp
-                            )
-                        }
-                        IconButton(onClick = {}) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                "재생",
-                                tint = Color.White
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // 진행 바
-                    LinearProgressIndicator(
-                        progress = 0.3f,
-                        modifier = Modifier.fillMaxWidth(),
-                        color = Color.White,
-                        trackColor = Color.White.copy(alpha = 0.3f)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ============================================
-// 2. 로딩 상태
-// ============================================
-
-@Preview(
-    name = "2. 로딩 중",
-    showBackground = true
-)
-@Composable
-fun EbookViewerWithMusicPreview_Loading() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFFBF5)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CircularProgressIndicator(
-                color = Color(0xFF2D5F4D),
-                modifier = Modifier.size(48.dp)
-            )
-            Text(
-                "책을 불러오는 중...",
-                fontSize = 16.sp,
-                color = Color(0xFF2C2C2C)
-            )
-        }
-    }
-}
-
-// ============================================
-// 3. 에러 상태
-// ============================================
-
-@Preview(
-    name = "3. 에러 상태",
-    showBackground = true
-)
-@Composable
-fun EbookViewerWithMusicPreview_Error() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFFBF5)),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(32.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Icon(
-                Icons.Default.Warning,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = Color(0xFFE57373)
-            )
-            Text(
-                "책을 불러오는 데 실패했습니다",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF2C2C2C),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                "네트워크 연결을 확인하고\n다시 시도해주세요",
-                fontSize = 14.sp,
-                color = Color.Gray,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = {},
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2D5F4D)
-                )
-            ) {
-                Icon(Icons.Default.Refresh, null)
-                Spacer(Modifier.width(8.dp))
-                Text("다시 시도")
-            }
-        }
-    }
-}
-
-// ============================================
-// 4. 다크 모드
-// ============================================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(
-    name = "4. 다크 모드",
-    showBackground = true,
-    backgroundColor = 0xFF1A1A1A
-)
-@Composable
-fun EbookViewerWithMusicPreview_DarkMode() {
-    val backgroundColor = Color(0xFF1A1A1A)
-    val textColor = Color(0xFFE0E0E0)
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(backgroundColor)
-    ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            "어린왕자 (다크모드)",
-                            color = textColor,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            "1 / 3",
-                            color = textColor.copy(alpha = 0.6f),
-                            fontSize = 12.sp
-                        )
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.ArrowBack, null, tint = textColor)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.LightMode, null, tint = textColor)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = backgroundColor
-                )
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = mockEpubContent.chapters[0].content,
-                    color = textColor,
-                    fontSize = 16.sp,
-                    lineHeight = 25.sp
-                )
-            }
-        }
-    }
-}
-
-// ============================================
-// 5. 음악 플레이어 열림 상태
-// ============================================
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(
-    name = "5. 음악 플레이어 열림",
-    showBackground = true,
-    heightDp = 800
-)
-@Composable
-fun EbookViewerWithMusicPreview_MusicPlayerOpen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFFFFBF5))
-    ) {
-        // 배경 콘텐츠 (흐리게)
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopAppBar(
-                title = { Text("어린왕자") },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFFFFBF5)
-                )
-            )
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .padding(24.dp)
-            ) {
-                Text(
-                    text = mockEpubContent.chapters[0].content,
-                    fontSize = 16.sp
-                )
-            }
-        }
-
-        // 음악 플레이어 오버레이
-        Card(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF33594E)
-            ),
-            elevation = CardDefaults.cardElevation(8.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(20.dp)
-            ) {
-                // 플레이리스트 제목
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "어린왕자 OST",
-                        color = Color.White,
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Close, null, tint = Color.White)
-                    }
-                }
-
-                Divider(
-                    color = Color.White.copy(alpha = 0.3f),
-                    modifier = Modifier.padding(vertical = 12.dp)
-                )
-
-                // 현재 곡
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 앨범 아트
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(Color.Gray)
-                    )
-
-                    Spacer(Modifier.width(12.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            mockPlaylist[0].title ?: "",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Text(
-                            mockPlaylist[0].artist ?: "",
-                            color = Color.White.copy(alpha = 0.7f),
-                            fontSize = 13.sp
-                        )
-                    }
-
-                    IconButton(onClick = {}) {
-                        Icon(
-                            Icons.Default.Pause,
-                            null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                // 진행 바
-                Column {
-                    Slider(
-                        value = 0.4f,
-                        onValueChange = {},
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                        )
-                    )
-
+                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("1:30", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                        Text("3:45", color = Color.White.copy(0.7f), fontSize = 12.sp)
-                    }
-                }
-
-                Spacer(Modifier.height(12.dp))
-
-                // 플레이리스트
-                Text(
-                    "플레이리스트",
-                    color = Color.White,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(Modifier.height(8.dp))
-
-                mockPlaylist.take(3).forEachIndexed { index, music ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            "${index + 1}",
-                            color = Color.White.copy(0.6f),
-                            fontSize = 14.sp,
-                            modifier = Modifier.width(24.dp)
-                        )
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                music.title ?: "",
-                                color = Color.White,
-                                fontSize = 14.sp
-                            )
-                            Text(
-                                music.artist ?: "",
-                                color = Color.White.copy(0.6f),
-                                fontSize = 12.sp
-                            )
+                        Text("플레이리스트", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                        IconButton(onClick = {}) {
+                            Icon(Icons.Default.Close, null)
                         }
-                        if (index == 0) {
-                            Icon(
-                                Icons.Default.PlayArrow,
-                                null,
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    mockPlaylist.forEach { music ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .background(Color(0xFF2D5F4D), RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.MusicNote, null, tint = Color.White)
+                            }
+                            Spacer(Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(music.title, fontWeight = FontWeight.Bold)
+                                Text(music.artist, fontSize = 12.sp, color = Color.Gray)
+                            }
                         }
                     }
                 }
@@ -1097,69 +690,27 @@ fun EbookViewerWithMusicPreview_MusicPlayerOpen() {
     }
 }
 
-// ============================================
-// 6. 챕터 목록 다이얼로그
-// ============================================
-
-@Preview(
-    name = "6. 챕터 목록",
-    showBackground = true
-)
+@Preview(name = "3. 챕터 목록", showBackground = true)
 @Composable
-fun EbookViewerWithMusicPreview_ChapterList() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black.copy(alpha = 0.5f)),
-        contentAlignment = Alignment.Center
-    ) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth(0.9f)
-                .fillMaxHeight(0.6f),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp)
-            ) {
-                Text(
-                    "챕터 목록",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
+fun ChapterListPreview() {
+    MaterialTheme {
+        ChapterListDialog(
+            chapters = mockEpubContent.chapters,
+            currentIndex = 1,
+            onChapterSelect = {},
+            onDismiss = {}
+        )
+    }
+}
 
-                Spacer(Modifier.height(16.dp))
-
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    itemsIndexed(mockEpubContent.chapters) { index, chapter ->
-                        Text(
-                            text = "${index + 1}. ${chapter.title}",
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (index == 0) Color(0xFF2D5F4D).copy(alpha = 0.2f)
-                                    else Color.Transparent
-                                )
-                                .padding(12.dp),
-                            fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal,
-                            color = if (index == 0) Color(0xFF2D5F4D) else Color.Black
-                        )
-                    }
-                }
-
-                Spacer(Modifier.height(16.dp))
-
-                TextButton(
-                    onClick = {},
-                    modifier = Modifier.align(Alignment.End)
-                ) {
-                    Text("닫기")
-                }
-            }
-        }
+@Preview(name = "4. 글자 크기", showBackground = true)
+@Composable
+fun FontSizePreview() {
+    MaterialTheme {
+        FontSizeDialog(
+            currentSize = 16,
+            onSizeChange = {},
+            onDismiss = {}
+        )
     }
 }
