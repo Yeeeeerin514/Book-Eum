@@ -238,7 +238,7 @@ fun EbookViewerWithMusicScreen(
                             }
                         }
                     }
-                    /*epubContent != null -> {
+                    epubContent != null -> {
                         ImprovedEbookContent(
                             chapter = epubContent!!.chapters.getOrNull(currentChapterIndex),
                             fontSize = fontSize,
@@ -255,7 +255,7 @@ fun EbookViewerWithMusicScreen(
                                 }
                             }
                         )
-                    }*/
+                    }
                 }
             }
 
@@ -305,7 +305,7 @@ fun EbookViewerWithMusicScreen(
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(0.6f), // 화면의 60% 높이
+                        .fillMaxHeight(), // 화면의 60% 높이
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White
