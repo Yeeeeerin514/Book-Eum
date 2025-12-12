@@ -186,7 +186,7 @@ class MusicDownloadService @Inject constructor(
             Result.success(allDownloadedTracks)
 
         } catch (e: Exception) {
-            Log.e(TAG, "❌ 다운로드 중 오류 발생", e)
+            Log.e(TAG, "❌ 다운로드  중 오류 발생", e)
             Result.failure(e)
         }
     }
