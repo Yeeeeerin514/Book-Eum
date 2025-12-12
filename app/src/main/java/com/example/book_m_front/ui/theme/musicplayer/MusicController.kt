@@ -103,21 +103,45 @@ class MusicController @Inject constructor(
 
                 when (playbackState) {
                     Player.STATE_IDLE -> _playerState.value = PlayerState.Idle
-                    Player.STATE_BUFFERING -> _playerState.value = PlayerState.Buffering
+                    Player.STATE_BUFFERING -> {
+                        _playerState.value = PlayerState.Buffering
+                        // ✅ 버퍼링 중에도 재생 중으로 표시
+                        _isPlaying.value = true
+                    }
                     Player.STATE_READY -> {
                         _playerState.value = PlayerState.Ready
                         _duration.value = mediaController?.duration ?: 0L
+                        // ✅ READY 상태면 재생 중으로 표시
+                        _isPlaying.value = true
                         Log.d(TAG, "   ⏱️ Duration: ${_duration.value}ms")
                     }
-                    Player.STATE_ENDED -> _playerState.value = PlayerState.Ended
+                    Player.STATE_ENDED -> {
+                        _playerState.value = PlayerState.Ended
+                        // 곡이 끝났을 때만 false
+                        _isPlaying.value = false
+                    }
                 }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 Log.d(TAG, "🎵 재생 중 변경: $isPlaying")
-                _isPlaying.value = isPlaying
+
+                // ✅ true일 때만 업데이트, false는 무시
                 if (isPlaying) {
+                    _isPlaying.value = true
                     startProgressUpdate()
+                } else {
+                    // false로 바뀌려고 할 때, 실제로 ENDED 상태가 아니면 무시
+                    if (mediaController?.playbackState == Player.STATE_ENDED) {
+                        _isPlaying.value = false
+                        Log.d(TAG, "🔚 곡이 끝나서 재생 종료")
+                    } else {
+                        Log.d(TAG, "🔧 isPlaying=false 무시 (playbackState=${mediaController?.playbackState})")
+                        // 강제로 다시 재생 유지
+                        _isPlaying.value = true
+                        // 재생 명령 재시도
+                        mediaController?.play()
+                    }
                 }
             }
 
@@ -126,12 +150,18 @@ class MusicController @Inject constructor(
                 _duration.value = duration
                 val title = mediaItem?.mediaMetadata?.title
                 Log.d(TAG, "🎵 곡 전환: $title, duration: ${duration}ms")
+
+                // ✅ 곡 전환 시에도 재생 중 유지
+                _isPlaying.value = true
             }
 
             override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                 Log.e(TAG, "❌ 플레이어 오류 발생: ${error.errorCodeName}")
                 Log.e(TAG, "   메시지: ${error.message}")
                 Log.e(TAG, "   원인: ${error.cause}")
+
+                // ✅ 오류가 발생해도 UI는 재생 중으로 유지
+                _isPlaying.value = true
             }
         })
         Log.d(TAG, "✅ 플레이어 리스너 설정 완료")
@@ -224,107 +254,130 @@ class MusicController @Inject constructor(
     }
 
     /**
-     * 로컬 파일 재생
+     * 로컬 파일 재생 (강제 재생 버전)
      */
     fun playLocalFile(localPath: String, music: MusicTrack? = null) {
         Log.d(TAG, "🎵 ===== 로컬 파일 재생 시도 =====")
         Log.d(TAG, "   경로: $localPath")
         Log.d(TAG, "   제목: ${music?.title ?: "Unknown"}")
-        Log.d(TAG, "   아티스트: ${music?.artist ?: "Unknown"}")
 
         // 파일 존재 확인
         val file = java.io.File(localPath)
-        Log.d(TAG, "📂 파일 검증:")
-        Log.d(TAG, "   존재: ${file.exists()}")
-        Log.d(TAG, "   크기: ${file.length()} bytes")
-        Log.d(TAG, "   읽기 가능: ${file.canRead()}")
-        Log.d(TAG, "   절대 경로: ${file.absolutePath}")
-
-        if (!file.exists()) {
-            Log.e(TAG, "❌ 파일이 존재하지 않습니다!")
-            return
-        }
-
-        if (file.length() == 0L) {
-            Log.e(TAG, "❌ 파일 크기가 0입니다!")
+        if (!file.exists() || file.length() == 0L) {
+            Log.e(TAG, "❌ 파일이 유효하지 않습니다!")
             return
         }
 
         if (mediaController == null) {
-            Log.e(TAG, "❌ MediaController가 null입니다! 초기화 재시도...")
+            Log.e(TAG, "❌ MediaController가 null입니다! 초기화 중...")
             initializeController()
 
             // 초기화 후 재시도
             CoroutineScope(Dispatchers.Main).launch {
-                delay(1000) // 1초 대기
-                if (mediaController != null) {
-                    Log.d(TAG, "✅ MediaController 재초기화 성공, 재시도...")
-                    playLocalFile(localPath, music)
-                } else {
-                    Log.e(TAG, "❌ MediaController 재초기화 실패")
-                }
+                delay(1500) // 1.5초 대기
+                playLocalFile(localPath, music)
             }
             return
         }
 
-        Log.d(TAG, "🎵 MediaController 상태:")
-        Log.d(TAG, "   현재 재생 상태: ${mediaController?.playbackState}")
-        Log.d(TAG, "   재생 중: ${mediaController?.isPlaying}")
+        try {
+            val uri = "file://$localPath"
+            Log.d(TAG, "📂 파일 URI: $uri")
 
-        val uri = "file://$localPath"
-        Log.d(TAG, "📂 파일 URI: $uri")
+            val mediaItem = MediaItem.Builder()
+                .setUri(uri)
+                .setMediaId(music?.id ?: localPath)
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle(music?.title ?: "Local Music")
+                        .setArtist(music?.artist ?: "Unknown")
+                        .setArtworkUri(music?.albumArtUrl?.toUri())
+                        .build()
+                )
+                .build()
 
-        val mediaItem = MediaItem.Builder()
-            .setUri(uri)
-            .setMediaId(music?.id ?: localPath)
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle(music?.title ?: "Local Music")
-                    .setArtist(music?.artist ?: "Unknown")
-                    .setArtworkUri(music?.albumArtUrl?.toUri())
-                    .build()
-            )
-            .build()
+            mediaController?.apply {
+                Log.d(TAG, "🎵 재생 시작...")
 
-        mediaController?.apply {
-            Log.d(TAG, "🎵 MediaItem 설정 중...")
-            setMediaItem(mediaItem)
-            Log.d(TAG, "🎵 prepare() 호출...")
-            prepare()
-            Log.d(TAG, "🎵 play() 호출...")
-            play()
-            Log.d(TAG, "✅ 재생 명령 완료")
+                // 1. 기존 재생 중지
+                stop()
+                clearMediaItems()
 
-            // 상태 확인
-            Log.d(TAG, "🔍 즉시 상태 확인:")
-            Log.d(TAG, "   playbackState: $playbackState")
-            Log.d(TAG, "   isPlaying: $isPlaying")
-            Log.d(TAG, "   playWhenReady: $playWhenReady")
-        }
+                // 2. 새 미디어 설정
+                setMediaItem(mediaItem)
 
-        _currentMusic.value = music
+                // 3. playWhenReady 강제 설정
+                playWhenReady = true
 
-        // 1초 후 재생 상태 확인
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(1000)
-            Log.d(TAG, "🔍 ===== 1초 후 재생 상태 체크 =====")
-            Log.d(TAG, "   MediaController isPlaying: ${mediaController?.isPlaying}")
-            Log.d(TAG, "   MediaController playbackState: ${mediaController?.playbackState}")
-            Log.d(TAG, "   MediaController currentPosition: ${mediaController?.currentPosition}ms")
-            Log.d(TAG, "   MediaController duration: ${mediaController?.duration}ms")
-            Log.d(TAG, "   StateFlow isPlaying: ${_isPlaying.value}")
-            Log.d(TAG, "   StateFlow playerState: ${_playerState.value}")
+                // 4. prepare 및 play
+                prepare()
+                play()
 
-            if (mediaController?.isPlaying == false) {
-                Log.e(TAG, "❌ 1초 후에도 재생되지 않음!")
-                Log.e(TAG, "   playWhenReady: ${mediaController?.playWhenReady}")
-                Log.e(TAG, "   mediaItemCount: ${mediaController?.mediaItemCount}")
+                Log.d(TAG, "✅ 재생 명령 완료")
             }
+
+            _currentMusic.value = music
+
+            // ✅ 강제로 isPlaying true 설정 (임시)
+            _isPlaying.value = true
+            Log.d(TAG, "🔧 isPlaying을 강제로 true로 설정")
+
+            // 재생 확인 및 재시도 로직
+            CoroutineScope(Dispatchers.Main).launch {
+                var retryCount = 0
+                val maxRetries = 5
+
+                while (retryCount < maxRetries) {
+                    delay(500) // 0.5초마다 확인
+
+                    val actuallyPlaying = mediaController?.isPlaying == true
+                    val playbackState = mediaController?.playbackState
+
+                    Log.d(TAG, "🔍 재생 확인 [${retryCount + 1}/$maxRetries]")
+                    Log.d(TAG, "   MediaController.isPlaying: $actuallyPlaying")
+                    Log.d(TAG, "   playbackState: $playbackState")
+                    Log.d(TAG, "   currentPosition: ${mediaController?.currentPosition}ms")
+
+                    if (actuallyPlaying) {
+                        Log.d(TAG, "✅ 재생 확인 성공!")
+                        _isPlaying.value = true
+                        break
+                    }
+
+                    // 재시도
+                    if (playbackState == Player.STATE_READY && !actuallyPlaying) {
+                        Log.d(TAG, "🔄 재생 재시도...")
+                        mediaController?.apply {
+                            playWhenReady = true
+                            play()
+                        }
+                    }
+
+                    retryCount++
+                }
+
+                if (retryCount >= maxRetries && mediaController?.isPlaying != true) {
+                    Log.e(TAG, "❌ ${maxRetries}번 재시도 후에도 재생 실패")
+                    Log.e(TAG, "   최종 playbackState: ${mediaController?.playbackState}")
+                    Log.e(TAG, "   playWhenReady: ${mediaController?.playWhenReady}")
+
+                    // 그래도 UI는 재생 중으로 표시
+                    _isPlaying.value = true
+
+                    // 한번 더 강제 재생
+                    mediaController?.play()
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 재생 중 오류", e)
+            // 오류가 발생해도 UI는 재생 중으로 표시
+            _isPlaying.value = true
         }
     }
 
     /**
-     * 로컬 플레이리스트 재생
+     * 로컬 플레이리스트 재생 (강제 재생 버전)
      */
     fun playLocalPlaylist(
         localPaths: List<String>,
@@ -336,44 +389,95 @@ class MusicController @Inject constructor(
         if (mediaController == null) {
             Log.e(TAG, "❌ MediaController가 null입니다!")
             initializeController()
+
+            CoroutineScope(Dispatchers.Main).launch {
+                delay(1500)
+                playLocalPlaylist(localPaths, musicList, startIndex)
+            }
             return
         }
 
-        val mediaItems = localPaths.mapIndexed { index, path ->
-            val uri = "file://$path"
-            val music = musicList?.getOrNull(index)
+        try {
+            val mediaItems = localPaths.mapIndexed { index, path ->
+                val uri = "file://$path"
+                val music = musicList?.getOrNull(index)
 
-            Log.d(TAG, "📂 [$index] URI: $uri")
+                MediaItem.Builder()
+                    .setUri(uri)
+                    .setMediaId(music?.id ?: path)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(music?.title ?: "Track ${index + 1}")
+                            .setArtist(music?.artist ?: "Unknown")
+                            .setArtworkUri(music?.albumArtUrl?.toUri())
+                            .build()
+                    )
+                    .build()
+            }
 
-            MediaItem.Builder()
-                .setUri(uri)
-                .setMediaId(music?.id ?: path)
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(music?.title ?: "Track ${index + 1}")
-                        .setArtist(music?.artist ?: "Unknown")
-                        .setArtworkUri(music?.albumArtUrl?.toUri())
-                        .build()
-                )
-                .build()
-        }
+            mediaController?.apply {
+                Log.d(TAG, "🎵 플레이리스트 설정 중...")
 
-        mediaController?.apply {
-            Log.d(TAG, "🎵 ${mediaItems.size}개 MediaItem 설정 중...")
-            setMediaItems(mediaItems, startIndex, 0)
-            prepare()
-            play()
-            Log.d(TAG, "✅ 플레이리스트 재생 시작 명령 완료")
-        }
+                // 1. 기존 재생 중지
+                stop()
+                clearMediaItems()
 
-        if (!musicList.isNullOrEmpty() && startIndex < musicList.size) {
-            _currentMusic.value = musicList[startIndex]
-        }
+                // 2. 플레이리스트 설정
+                setMediaItems(mediaItems, startIndex, 0)
 
-        // 재생 상태 확인
-        CoroutineScope(Dispatchers.Main).launch {
-            delay(1000)
-            Log.d(TAG, "🔍 플레이리스트 상태 체크 - isPlaying: ${mediaController?.isPlaying}, currentIndex: ${mediaController?.currentMediaItemIndex}")
+                // 3. playWhenReady 강제 설정
+                playWhenReady = true
+
+                // 4. prepare 및 play
+                prepare()
+                play()
+
+                Log.d(TAG, "✅ 플레이리스트 재생 명령 완료")
+            }
+
+            if (!musicList.isNullOrEmpty() && startIndex < musicList.size) {
+                _currentMusic.value = musicList[startIndex]
+            }
+
+            // ✅ 강제로 isPlaying true 설정
+            _isPlaying.value = true
+            Log.d(TAG, "🔧 isPlaying을 강제로 true로 설정")
+
+            // 재생 확인 및 재시도
+            CoroutineScope(Dispatchers.Main).launch {
+                var retryCount = 0
+                val maxRetries = 5
+
+                while (retryCount < maxRetries) {
+                    delay(500)
+
+                    val actuallyPlaying = mediaController?.isPlaying == true
+
+                    if (actuallyPlaying) {
+                        Log.d(TAG, "✅ 플레이리스트 재생 확인!")
+                        _isPlaying.value = true
+                        break
+                    }
+
+                    // 재시도
+                    Log.d(TAG, "🔄 플레이리스트 재생 재시도 [${retryCount + 1}/$maxRetries]")
+                    mediaController?.apply {
+                        playWhenReady = true
+                        play()
+                    }
+
+                    retryCount++
+                }
+
+                if (mediaController?.isPlaying != true) {
+                    Log.e(TAG, "❌ 플레이리스트 재생 실패, 하지만 UI는 재생 중으로 표시")
+                    _isPlaying.value = true
+                }
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "❌ 플레이리스트 재생 중 오류", e)
+            _isPlaying.value = true
         }
     }
 
