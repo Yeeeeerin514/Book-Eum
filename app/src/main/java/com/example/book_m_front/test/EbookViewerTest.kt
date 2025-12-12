@@ -219,7 +219,7 @@ fun SimpleEpubViewerForTest(
                 epubContent != null -> {
                     Column(modifier = Modifier.fillMaxSize()) {
                         // 본문
-                        Box(modifier = Modifier.weight(1f)) {
+                        /*Box(modifier = Modifier.weight(1f)) {
                             com.example.book_m_front.ui.theme.ui.ImprovedEbookContent(
                                 chapter = epubContent!!.chapters.getOrNull(currentChapterIndex),
                                 fontSize = fontSize,
@@ -236,7 +236,7 @@ fun SimpleEpubViewerForTest(
                                     }
                                 }
                             )
-                        }
+                        }*/
 
                         // 네비게이션 버튼
                         Row(

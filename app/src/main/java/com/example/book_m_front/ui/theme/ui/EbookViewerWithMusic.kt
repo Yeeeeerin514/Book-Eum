@@ -1,6 +1,9 @@
 package com.example.book_m_front.ui.theme.ui
 
 import android.util.Log
+import android.webkit.WebView
+import android.webkit.WebViewClient
+import android.webkit.WebSettings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
@@ -39,9 +42,6 @@ import com.example.book_m_front.ui.theme.viewmodel.formatTime
 import com.example.book_m_front.util.EpubContent
 import com.example.book_m_front.util.SimpleEpubParser
 import kotlinx.coroutines.launch
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.webkit.WebSettings
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.book_m_front.ui.theme.musicplayer.MusicPlayerUI
@@ -212,7 +212,7 @@ fun EbookViewerWithMusicScreen(
                 )
             )
 
-            // 본문
+            // 본문 영역
             Box(
                 modifier = Modifier
                     .weight(1f)
@@ -220,53 +220,37 @@ fun EbookViewerWithMusicScreen(
             ) {
                 when {
                     isLoading -> {
-                        // 로딩 상태
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                CircularProgressIndicator(color = Color(0xFF2D5F4D))
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("책을 불러오는 중...", color = textColor)
-                            }
-                        }
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = Color(0xFF2D5F4D)
+                        )
                     }
                     errorMessage != null -> {
-                        // 에러 상태
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(32.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Error,
-                                    contentDescription = null,
-                                    tint = Color.Red,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    errorMessage!!,
-                                    color = Color.Red,
-                                    textAlign = TextAlign.Center
-                                )
+                            Text(errorMessage!!, color = Color.Red)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = onBackClick) {
+                                Text("돌아가기")
                             }
                         }
                     }
                     epubContent != null -> {
-                        // EPUB 콘텐츠 표시
-                        EpubContentViewer(
-                            epubContent = epubContent!!,
-                            currentChapterIndex = currentChapterIndex,
+                        ImprovedEbookContent(
+                            chapter = epubContent!!.chapters.getOrNull(currentChapterIndex),
                             fontSize = fontSize,
-                            isDarkMode = isDarkMode,
-                            onChapterChange = { newIndex ->
-                                if (newIndex in epubContent!!.chapters.indices) {
-                                    currentChapterIndex = newIndex
+                            textColor = textColor,
+                            backgroundColor = backgroundColor,
+                            onPreviousChapter = {
+                                if (currentChapterIndex > 0) {
+                                    currentChapterIndex--
+                                }
+                            },
+                            onNextChapter = {
+                                if (currentChapterIndex < epubContent!!.chapters.size - 1) {
+                                    currentChapterIndex++
                                 }
                             }
                         )
@@ -274,11 +258,47 @@ fun EbookViewerWithMusicScreen(
                 }
             }
 
-            // ✅ 수정: 실제 플레이리스트 데이터를 사용하는 음악 플레이어
+            // 하단 네비게이션 버튼
+            if (epubContent != null && epubContent!!.chapters.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(backgroundColor)
+                        .padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(
+                        onClick = {
+                            if (currentChapterIndex > 0) currentChapterIndex--
+                        },
+                        enabled = currentChapterIndex > 0
+                    ) {
+                        Text("이전")
+                    }
+                    Text(
+                        "${currentChapterIndex + 1} / ${epubContent!!.chapters.size}",
+                        modifier = Modifier.align(Alignment.CenterVertically),
+                        color = textColor
+                    )
+                    Button(
+                        onClick = {
+                            if (currentChapterIndex < epubContent!!.chapters.size - 1) {
+                                currentChapterIndex++
+                            }
+                        },
+                        enabled = currentChapterIndex < epubContent!!.chapters.size - 1
+                    ) {
+                        Text("다음")
+                    }
+                }
+            }
+
+            // ✅ 음악 플레이어 (하단에 오버레이)
             AnimatedVisibility(
                 visible = showMusicPlayer,
                 enter = slideInVertically(initialOffsetY = { it }),
-                exit = slideOutVertically(targetOffsetY = { it })
+                exit = slideOutVertically(targetOffsetY = { it }),
+                //modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 CompactMusicPlayer(
                     currentTrack = currentTrack,
@@ -312,165 +332,209 @@ fun EbookViewerWithMusicScreen(
 
         // 챕터 목록 다이얼로그
         if (showChapterList && epubContent != null) {
-            AlertDialog(
-                onDismissRequest = { showChapterList = false },
-                title = { Text("챕터 목록") },
-                text = {
-                    LazyColumn {
-                        itemsIndexed(epubContent!!.chapters) { index, chapter ->
-                            Text(
-                                text = "${index + 1}. ${chapter.title}",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        currentChapterIndex = index
-                                        showChapterList = false
-                                    }
-                                    .padding(vertical = 12.dp),
-                                fontWeight = if (index == currentChapterIndex) FontWeight.Bold else FontWeight.Normal,
-                                color = if (index == currentChapterIndex) Color(0xFF2D5F4D) else Color.Black
-                            )
-                        }
-                    }
+            ChapterListDialog(
+                chapters = epubContent!!.chapters,
+                currentIndex = currentChapterIndex,
+                onChapterSelect = { index ->
+                    currentChapterIndex = index
+                    showChapterList = false
                 },
-                confirmButton = {
-                    TextButton(onClick = { showChapterList = false }) {
-                        Text("닫기")
-                    }
-                }
+                onDismiss = { showChapterList = false }
             )
         }
 
-        // 글자 크기 다이얼로그
+        // 글자 크기 조절 다이얼로그
         if (showFontSizeDialog) {
-            AlertDialog(
-                onDismissRequest = { showFontSizeDialog = false },
-                title = { Text("글자 크기") },
-                text = {
-                    Column {
-                        Text("글자 크기: ${fontSize}px")
-                        Slider(
-                            value = fontSize.toFloat(),
-                            onValueChange = { fontSize = it.toInt() },
-                            valueRange = 12f..24f,
-                            steps = 11
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(onClick = { showFontSizeDialog = false }) {
-                        Text("확인")
-                    }
-                }
+            FontSizeDialog(
+                currentSize = fontSize,
+                onSizeChange = { fontSize = it },
+                onDismiss = { showFontSizeDialog = false }
             )
         }
     }
 }
 
 // ============================================
-// EPUB 콘텐츠 뷰어 (WebView 사용)
+// ImprovedEbookContent - WebView 기반 이북 뷰어
 // ============================================
 
 @Composable
-fun EpubContentViewer(
-    epubContent: EpubContent,
-    currentChapterIndex: Int,
+fun ImprovedEbookContent(
+    chapter: Chapter?,
     fontSize: Int,
-    isDarkMode: Boolean,
-    onChapterChange: (Int) -> Unit
+    textColor: Color,
+    backgroundColor: Color,
+    onPreviousChapter: () -> Unit,
+    onNextChapter: () -> Unit
 ) {
-    val currentChapter = epubContent.chapters.getOrNull(currentChapterIndex)
-
-    if (currentChapter == null) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("챕터를 불러올 수 없습니다")
+    if (chapter == null) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("챕터 내용을 불러올 수 없습니다.", color = textColor)
         }
         return
     }
 
-    val backgroundColor = if (isDarkMode) "#222522" else "#F5F8F5"
-    val textColor = if (isDarkMode) "#E0E0E0" else "#2C2C2C"
-
-    val htmlContent = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-            <style>
-                body {
-                    margin: 0;
-                    padding: 20px;
-                    background-color: $backgroundColor;
-                    color: $textColor;
-                    font-size: ${fontSize}px;
-                    line-height: 1.8;
-                    font-family: 'Noto Sans KR', sans-serif;
-                }
-                img {
-                    max-width: 100%;
-                    height: auto;
-                }
-                p {
-                    margin-bottom: 1em;
-                }
-            </style>
-        </head>
-        <body>
-            ${currentChapter.content}
-        </body>
-        </html>
+    val bodyStyle = """
+        <style>
+            body {
+                color: #${Integer.toHexString(textColor.toArgb()).substring(2)};
+                background-color: #${Integer.toHexString(backgroundColor.toArgb()).substring(2)};
+                font-size: ${fontSize}px;
+                line-height: 1.6;
+                padding: 16px;
+            }
+            img {
+                max-width: 100%;
+                height: auto;
+            }
+        </style>
     """.trimIndent()
 
-    var webView: WebView? by remember { mutableStateOf(null) }
+    val styledHtmlContent = bodyStyle + chapter.content
+    val context = LocalContext.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AndroidView(
-            factory = { context ->
-                WebView(context).apply {
-                    webViewClient = WebViewClient()
-                    settings.apply {
-                        javaScriptEnabled = true
-                        loadWithOverviewMode = true
-                        useWideViewPort = true
-                        builtInZoomControls = false
-                        displayZoomControls = false
-                    }
-                    setBackgroundColor(android.graphics.Color.parseColor(backgroundColor))
-                    loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
-                    webView = this
+    val webView = remember {
+        WebView(context).apply {
+            settings.apply {
+                javaScriptEnabled = true
+                domStorageEnabled = true
+                builtInZoomControls = true
+                displayZoomControls = false
+                cacheMode = WebSettings.LOAD_NO_CACHE
+            }
+            webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView?, url: String?) {
+                    super.onPageFinished(view, url)
                 }
-            },
-            update = { view ->
-                view.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
-            },
-            modifier = Modifier
-                .fillMaxSize()
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onTap = { offset ->
-                            val width = size.width
-                            when {
-                                offset.x < width / 3 -> {
-                                    // 왼쪽 탭: 이전 챕터
-                                    if (currentChapterIndex > 0) {
-                                        onChapterChange(currentChapterIndex - 1)
-                                    }
-                                }
-                                offset.x > width * 2 / 3 -> {
-                                    // 오른쪽 탭: 다음 챕터
-                                    if (currentChapterIndex < epubContent.chapters.size - 1) {
-                                        onChapterChange(currentChapterIndex + 1)
-                                    }
-                                }
-                            }
-                        }
-                    )
-                }
+            }
+            setBackgroundColor(0)
+        }
+    }
+
+    LaunchedEffect(styledHtmlContent) {
+        webView.loadDataWithBaseURL(
+            null,
+            styledHtmlContent,
+            "text/html",
+            "utf-8",
+            null
         )
     }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            try {
+                webView.stopLoading()
+            } catch (_: Exception) {}
+            webView.destroy()
+        }
+    }
+
+    Box(modifier = Modifier
+        .fillMaxSize()
+        .background(backgroundColor)
+        .pointerInput(Unit) {
+            detectTapGestures { offset ->
+                val width = size.width
+                if (offset.x < width / 4) {
+                    onPreviousChapter()
+                } else if (offset.x > width * 3 / 4) {
+                    onNextChapter()
+                }
+            }
+        }
+    ) {
+        AndroidView(
+            factory = { webView },
+            update = { },
+            modifier = Modifier.fillMaxSize()
+        )
+    }
+}
+
+// ============================================
+// 챕터 목록 다이얼로그
+// ============================================
+
+@Composable
+fun ChapterListDialog(
+    chapters: List<Chapter>,
+    currentIndex: Int,
+    onChapterSelect: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("챕터 목록", fontWeight = FontWeight.Bold) },
+        text = {
+            val listState = rememberLazyListState(initialFirstVisibleItemIndex = currentIndex)
+            LazyColumn(state = listState) {
+                itemsIndexed(chapters) { index, chapter ->
+                    Text(
+                        text = "${index + 1}. ${chapter.title}",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onChapterSelect(index) }
+                            .padding(vertical = 12.dp),
+                        color = if (index == currentIndex) MaterialTheme.colorScheme.primary else Color.Unspecified,
+                        fontWeight = if (index == currentIndex) FontWeight.Bold else FontWeight.Normal
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("닫기")
+            }
+        }
+    )
+}
+
+// ============================================
+// 글자 크기 다이얼로그
+// ============================================
+
+@Composable
+fun FontSizeDialog(
+    currentSize: Int,
+    onSizeChange: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("글자 크기 조절") },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    "가나다라",
+                    fontSize = currentSize.sp,
+                    modifier = Modifier.padding(vertical = 16.dp)
+                )
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("작게", fontSize = 12.sp)
+                    Slider(
+                        value = currentSize.toFloat(),
+                        onValueChange = { onSizeChange(it.toInt()) },
+                        valueRange = 12f..28f,
+                        steps = 15,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp)
+                    )
+                    Text("크게", fontSize = 18.sp)
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("확인")
+            }
+        }
+    )
 }
 
 // ============================================
