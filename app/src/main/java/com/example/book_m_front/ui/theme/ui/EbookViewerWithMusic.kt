@@ -83,19 +83,14 @@ fun EbookViewerWithMusicScreen(
     // 음악 플레이어 상태
     var showMusicPlayer by remember { mutableStateOf(true) }
 
-    // ✅ ViewModel에서 제공하는 상태들
-    val playerState by musicPlayerViewModel.playerState.collectAsState()
-    val playlist by musicPlayerViewModel.playlist.collectAsState()
-    val isPlaying by musicPlayerViewModel.isPlaying.collectAsState()
-    val currentPosition by musicPlayerViewModel.currentPosition.collectAsState()
-    val duration by musicPlayerViewModel.duration.collectAsState()
-    val currentTrack by musicPlayerViewModel.currentTrack.collectAsState()
-
     // ✅ 다운로드 관련 상태
     val isDownloading by musicPlayerViewModel.isDownloading.collectAsState()
     val downloadProgress by musicPlayerViewModel.downloadProgress.collectAsState()
     val firstChapterReady by musicPlayerViewModel.firstChapterReady.collectAsState()
     val localPlaylistPaths by musicPlayerViewModel.localPlaylistPaths.collectAsState()
+
+    // ✅ 플레이리스트 (메타데이터 포함)
+    val playlistWithMetadata by musicPlayerViewModel.playlist.collectAsState()
 
     // ✅ 진행률 계산 (0.0 ~ 1.0)
     val progress = if (duration > 0) {
@@ -140,12 +135,13 @@ fun EbookViewerWithMusicScreen(
         musicPlayerViewModel.loadAndPlayPlaylist(bookIsbn)
     }
 
-    // ✅ 챕터 변경 시 음악 변경 (로컬 파일 재생)
-    LaunchedEffect(currentChapterIndex, localPlaylistPaths) {
-        if (localPlaylistPaths.isNotEmpty()) {
-            val trackIndex = currentChapterIndex % localPlaylistPaths.size
-            Log.d(TAG, "📖 챕터 변경: $currentChapterIndex → 음악 인덱스: $trackIndex")
-            musicPlayerViewModel.playLocalFile(localPlaylistPaths[trackIndex])
+    // ✅ 챕터 변경 시 음악 변경 (메타데이터와 함께 재생)
+    LaunchedEffect(currentChapterIndex, playlistWithMetadata) {
+        if (playlistWithMetadata.isNotEmpty()) {
+            val trackIndex = currentChapterIndex % playlistWithMetadata.size
+            val music = playlistWithMetadata[trackIndex]
+            Log.d(TAG, "📖 챕터 변경: $currentChapterIndex → 음악: ${music.title}")
+            musicPlayerViewModel.playTrack(music)
         }
     }
 
@@ -299,13 +295,13 @@ fun EbookViewerWithMusicScreen(
                 visible = showMusicPlayer,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it }),
-                //modifier = Modifier.align(Alignment.BottomCenter)
+                modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 // MusicPlayerUI를 Card로 감싸서 하단에 표시
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .fillMaxHeight(), // 화면의 60% 높이
+                        .fillMaxHeight(0.6f), // 화면의 60% 높이
                     shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = Color.White
@@ -550,21 +546,22 @@ private val mockEpubContent = EpubContent(
     title = "어린왕자",
     author = "생텍쥐페리",
     chapters = listOf(
-        Chapter("1장", "<p>어렸을 때 나는 원시림에 관한 책에서 멋진 그림을 본 적이 있다...</p>"),
-        Chapter("2장", "<p>나는 사하라 사막에서 살았다...</p>"),
-        Chapter("3장", "<p>어린 왕자가 어디서 왔는지 알기까지는 시간이 걸렸다...</p>")
+        Chapter("1장: 사막에서의 만남", "<p>어른들은 숫자를 좋아한다...</p>"),
+        Chapter("2장: 코끼리를 삼킨 보아뱀", "<p>내가 여섯 살이었을 때...</p>"),
+        Chapter("3장: 양을 그려줘", "<p>어린 왕자가 어디서 왔는지...</p>")
     )
 )
 
 private val mockPlaylist = listOf(
-    Music("1", "별", "윤하", ""),
-    Music("2", "사계", "태연", ""),
-    Music("3", "밤편지", "아이유", "")
+    Music("1", "B-612", "오왠", "", ""),
+    Music("2", "사계", "태연", "", ""),
+    Music("3", "밤편지", "아이유", "", "")
 )
+
 // ============================================
-// 1. 정상 로드 상태 (기본)
+// 프리뷰
 // ============================================
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Preview(
     name = "1. 이북 뷰어 - 라이트 모드",
     showBackground = true,
@@ -623,7 +620,6 @@ fun EbookViewerPreview_Light() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Preview(
     name = "2. 음악 플레이어 열림",
     showBackground = true,

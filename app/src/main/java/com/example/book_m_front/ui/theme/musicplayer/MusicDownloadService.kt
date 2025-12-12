@@ -13,9 +13,6 @@ import javax.inject.Singleton
 
 /**
  * 🎵 통합 음악 다운로드 매니저
- *
- * MusicDownloader와 MusicDownloadManager의 기능을 통합
- * 중복 제거 및 단일 책임 원칙 준수
  */
 @Singleton
 class MusicDownloadService @Inject constructor(
@@ -26,10 +23,15 @@ class MusicDownloadService @Inject constructor(
     }
 
     /**
+     * 다운로드된 트랙 정보 (경로 + 메타데이터)
+     */
+    data class DownloadedTrack(
+        val localPath: String,
+        val metadata: MusicTrack
+    )
+
+    /**
      * 📥 단일 음악 트랙 다운로드
-     *
-     * @param track 다운로드할 음악 트랙
-     * @return 로컬 파일 경로 (실패 시 null)
      */
     suspend fun downloadTrack(track: MusicTrack): Result<String> = withContext(Dispatchers.IO) {
         try {
@@ -62,67 +64,69 @@ class MusicDownloadService @Inject constructor(
     }
 
     /**
-     * 📚 ISBN으로 전체 플레이리스트 다운로드
+     * 📚 ISBN으로 전체 플레이리스트 다운로드 (메타데이터 포함)
      *
      * @param isbn 책 ISBN
-     * @param onFirstChapterReady 첫 챕터 다운로드 완료 콜백
+     * @param onFirstChapterReady 첫 챕터 다운로드 완료 콜백 (경로 + 메타데이터)
      * @param onProgress 진행률 콜백 (current, total)
-     * @param onComplete 전체 완료 콜백
+     * @param onComplete 전체 완료 콜백 (모든 트랙 정보)
      */
     suspend fun downloadPlaylistByIsbn(
         isbn: String,
-        onFirstChapterReady: (List<String>) -> Unit = {},
+        onFirstChapterReady: (List<DownloadedTrack>) -> Unit = {},
         onProgress: (current: Int, total: Int) -> Unit = { _, _ -> },
-        onComplete: () -> Unit = {}
-    ): Result<List<String>> = withContext(Dispatchers.IO) {
+        onComplete: (List<DownloadedTrack>) -> Unit = {}
+    ): Result<List<DownloadedTrack>> = withContext(Dispatchers.IO) {
         try {
-            Log.d(TAG, "플레이리스트 다운로드 시작: ISBN=$isbn")
+            Log.d(TAG, "📖 플레이리스트 다운로드 시작: ISBN=$isbn")
 
             // 1. 플레이리스트 메타데이터 조회
             val response = Api.retrofitService.getChapterBasedPlaylist(isbn)
 
             if (!response.isSuccessful || response.body() == null) {
-                Log.e(TAG, "플레이리스트 조회 실패: ${response.code()}")
+                Log.e(TAG, "❌ 플레이리스트 조회 실패: ${response.code()}")
                 return@withContext Result.failure(
                     Exception("플레이리스트 조회 실패: ${response.code()}")
                 )
             }
 
             val playlist = response.body()!!
-            Log.d(TAG, "플레이리스트 조회 성공: ${playlist.totalChapters}개 챕터, ${playlist.totalMusic}곡")
+            Log.d(TAG, "✅ 플레이리스트 조회 성공: ${playlist.totalChapters}개 챕터, ${playlist.totalMusic}곡")
 
             var downloadedCount = 0
             val totalTracks = playlist.totalMusic
-            val allLocalPaths = mutableListOf<String>()
+            val allDownloadedTracks = mutableListOf<DownloadedTrack>()
 
             // 2. 첫 번째 챕터 우선 다운로드
             val firstChapter = playlist.chapterPlaylist.firstOrNull()
 
             if (firstChapter != null) {
-                Log.d(TAG, "첫 챕터 다운로드 시작: ${firstChapter.chapterTitle}")
+                Log.d(TAG, "📥 첫 챕터 다운로드 시작: ${firstChapter.chapterTitle}")
 
-                val firstChapterPaths = mutableListOf<String>()
+                val firstChapterTracks = mutableListOf<DownloadedTrack>()
 
                 for ((index, track) in firstChapter.musics.withIndex()) {
-                    Log.d(TAG, "첫 챕터 [${index + 1}/${firstChapter.musics.size}] 다운로드: ${track.title}")
+                    Log.d(TAG, "   [${index + 1}/${firstChapter.musics.size}] ${track.title} - ${track.artist}")
 
                     val result = downloadTrack(track)
 
                     if (result.isSuccess) {
                         val path = result.getOrNull()!!
-                        firstChapterPaths.add(path)
-                        allLocalPaths.add(path)
+                        val downloadedTrack = DownloadedTrack(path, track)
+
+                        firstChapterTracks.add(downloadedTrack)
+                        allDownloadedTracks.add(downloadedTrack)
                         downloadedCount++
                         onProgress(downloadedCount, totalTracks)
                     } else {
-                        Log.w(TAG, "다운로드 실패: ${track.title}")
+                        Log.w(TAG, "⚠️ 다운로드 실패: ${track.title}")
                     }
                 }
 
                 // 🎉 첫 챕터 완료 콜백
-                Log.d(TAG, "🎉 첫 챕터 다운로드 완료! ${firstChapterPaths.size}곡 준비됨")
+                Log.d(TAG, "🎉 첫 챕터 다운로드 완료! ${firstChapterTracks.size}곡 준비됨")
                 withContext(Dispatchers.Main) {
-                    onFirstChapterReady(firstChapterPaths)
+                    onFirstChapterReady(firstChapterTracks)
                 }
             }
 
@@ -130,13 +134,14 @@ class MusicDownloadService @Inject constructor(
             val remainingChapters = playlist.chapterPlaylist.drop(1)
 
             for ((chapterIndex, chapter) in remainingChapters.withIndex()) {
-                Log.d(TAG, "챕터 [${chapterIndex + 2}/${playlist.totalChapters}] 다운로드: ${chapter.chapterTitle}")
+                Log.d(TAG, "📥 챕터 [${chapterIndex + 2}/${playlist.totalChapters}] 다운로드: ${chapter.chapterTitle}")
 
                 for (track in chapter.musics) {
                     val result = downloadTrack(track)
 
                     if (result.isSuccess) {
-                        allLocalPaths.add(result.getOrNull()!!)
+                        val downloadedTrack = DownloadedTrack(result.getOrNull()!!, track)
+                        allDownloadedTracks.add(downloadedTrack)
                         downloadedCount++
                         onProgress(downloadedCount, totalTracks)
                     }
@@ -145,14 +150,19 @@ class MusicDownloadService @Inject constructor(
 
             // 4. 전체 완료 콜백
             Log.d(TAG, "✅ 전체 다운로드 완료! $downloadedCount/$totalTracks 곡")
-            withContext(Dispatchers.Main) {
-                onComplete()
+            Log.d(TAG, "📂 다운로드된 곡 목록:")
+            allDownloadedTracks.forEachIndexed { index, track ->
+                Log.d(TAG, "   [$index] ${track.metadata.title} - ${track.metadata.artist}")
             }
 
-            Result.success(allLocalPaths)
+            withContext(Dispatchers.Main) {
+                onComplete(allDownloadedTracks)
+            }
+
+            Result.success(allDownloadedTracks)
 
         } catch (e: Exception) {
-            Log.e(TAG, "다운로드 중 오류 발생", e)
+            Log.e(TAG, "❌ 다운로드 중 오류 발생", e)
             Result.failure(e)
         }
     }

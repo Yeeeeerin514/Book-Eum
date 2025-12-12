@@ -77,81 +77,99 @@ open class MusicPlayerViewModel @Inject constructor(
 
     fun loadAndPlayPlaylist(isbn: String) {
         viewModelScope.launch {
-            Log.d(TAG, "플레이리스트 로드 시작: ISBN=$isbn")
+            Log.d(TAG, "📖 플레이리스트 로드 시작: ISBN=$isbn")
 
             _isDownloading.value = true
             _downloadProgress.value = 0f
             _firstChapterReady.value = false
             _errorMessage.value = null
 
-            val allLocalPaths = mutableListOf<String>()
+            val allDownloadedTracks = mutableListOf<MusicDownloadService.DownloadedTrack>()
 
             try {
                 val result = musicDownloadService.downloadPlaylistByIsbn(
                     isbn = isbn,
 
-                    onFirstChapterReady = { localPaths ->
-                        Log.d(TAG, "🎉 첫 챕터 준비 완료: ${localPaths.size}곡")
+                    onFirstChapterReady = { downloadedTracks ->
+                        Log.d(TAG, "🎉 첫 챕터 준비 완료: ${downloadedTracks.size}곡")
                         _firstChapterReady.value = true
-                        allLocalPaths.addAll(localPaths)
-                        _localPlaylistPaths.value = ArrayList(allLocalPaths)
+                        allDownloadedTracks.addAll(downloadedTracks)
 
-                        // ✅ playlist 업데이트
-                        updatePlaylistFromPaths(allLocalPaths, isbn)
+                        // ✅ 로컬 경로와 메타데이터 분리
+                        val localPaths = downloadedTracks.map { it.localPath }
+                        val tracks = downloadedTracks.map { it.metadata }
 
-                        if (localPaths.isNotEmpty()) {
-                            playLocalFile(localPaths.first())
-                            Log.d(TAG, "🎵 재생 시작: ${localPaths.first()}")
+                        _localPlaylistPaths.value = ArrayList(localPaths)
+
+                        // ✅ playlist 업데이트 (메타데이터 포함)
+                        updatePlaylistFromTracks(tracks)
+
+                        if (downloadedTracks.isNotEmpty()) {
+                            val firstTrack = downloadedTracks.first()
+                            Log.d(TAG, "🎵 재생 시작: ${firstTrack.metadata.title}")
+
+                            // ✅ 메타데이터와 함께 재생
+                            musicController.playLocalFile(firstTrack.localPath, firstTrack.metadata)
                         }
                     },
 
                     onProgress = { current, total ->
                         val progress = current.toFloat() / total.toFloat()
                         _downloadProgress.value = progress
-                        Log.d(TAG, "다운로드 진행: $current/$total (${(progress * 100).toInt()}%)")
+                        Log.d(TAG, "📥 다운로드 진행: $current/$total (${(progress * 100).toInt()}%)")
                     },
 
-                    onComplete = {
+                    onComplete = { downloadedTracks ->
                         _isDownloading.value = false
                         _downloadProgress.value = 1f
-                        _localPlaylistPaths.value = ArrayList(allLocalPaths)
+                        allDownloadedTracks.clear()
+                        allDownloadedTracks.addAll(downloadedTracks)
+
+                        // ✅ 로컬 경로와 메타데이터 분리
+                        val localPaths = downloadedTracks.map { it.localPath }
+                        val tracks = downloadedTracks.map { it.metadata }
+
+                        _localPlaylistPaths.value = ArrayList(localPaths)
 
                         // ✅ 최종 playlist 업데이트
-                        updatePlaylistFromPaths(allLocalPaths, isbn)
+                        updatePlaylistFromTracks(tracks)
 
-                        Log.d(TAG, "✅ 전체 다운로드 완료! 총 ${allLocalPaths.size}곡")
+                        Log.d(TAG, "✅ 전체 다운로드 완료! 총 ${downloadedTracks.size}곡")
                     }
                 )
 
                 if (result.isFailure) {
                     _errorMessage.value = result.exceptionOrNull()?.message ?: "다운로드 실패"
                     _isDownloading.value = false
-                    Log.e(TAG, "다운로드 실패", result.exceptionOrNull())
+                    Log.e(TAG, "❌ 다운로드 실패", result.exceptionOrNull())
                 }
 
             } catch (e: Exception) {
                 _errorMessage.value = "오류 발생: ${e.message}"
                 _isDownloading.value = false
-                Log.e(TAG, "예외 발생", e)
+                Log.e(TAG, "❌ 예외 발생", e)
             }
         }
     }
 
     /**
-     * 로컬 경로 목록으로부터 playlist를 업데이트
+     * MusicTrack 목록으로부터 playlist를 업데이트
      */
-    private fun updatePlaylistFromPaths(paths: List<String>, isbn: String) {
-        val musicList = paths.mapIndexed { index, path ->
+    private fun updatePlaylistFromTracks(tracks: List<MusicTrack>) {
+        val musicList = tracks.map { track ->
             Music(
-                id = path,
-                title = "Track ${index + 1}",
-                artist = "Unknown",
-                album = isbn,
-                albumArtUrl = null
+                id = track.id,
+                title = track.title,
+                artist = track.artist,
+                album = "",
+                albumArtUrl = track.albumArtUrl
             )
         }
         _playlist.value = musicList
         Log.d(TAG, "📝 Playlist 업데이트: ${musicList.size}곡")
+        musicList.forEachIndexed { index, music ->
+            Log.d(TAG, "   [$index] ${music.title} - ${music.artist}")
+        }
     }
 
     // ========================================
