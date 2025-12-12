@@ -35,14 +35,25 @@ class MusicDownloadService @Inject constructor(
      */
     suspend fun downloadTrack(track: MusicTrack): Result<String> = withContext(Dispatchers.IO) {
         try {
+            Log.d(TAG, "🎵 다운로드 요청: ${track.title} (ID: ${track.id})")
+
             // 1. 캐시 확인
             val cachedPath = getCachedTrackPath(track.id)
             if (cachedPath != null) {
-                Log.d(TAG, "캐시 적중: ${track.title} → $cachedPath")
+                Log.d(TAG, "✅ 캐시 적중: ${track.title}")
+                Log.d(TAG, "   📂 경로: $cachedPath")
+
+                // 파일 검증
+                val file = java.io.File(cachedPath)
+                Log.d(TAG, "   📊 파일 존재: ${file.exists()}")
+                Log.d(TAG, "   📊 파일 크기: ${file.length()} bytes")
+                Log.d(TAG, "   📊 읽기 가능: ${file.canRead()}")
+
                 return@withContext Result.success(cachedPath)
             }
 
             // 2. 다운로드
+            Log.d(TAG, "📥 새로 다운로드 시작: ${track.title}")
             val localPath = UnifiedFileDownloader.downloadFile(
                 context = context,
                 fileId = track.id,
@@ -51,14 +62,27 @@ class MusicDownloadService @Inject constructor(
             )
 
             if (localPath != null) {
-                Log.d(TAG, "다운로드 완료: ${track.title} → $localPath")
+                // 다운로드 후 검증
+                val file = java.io.File(localPath)
+                Log.d(TAG, "✅ 다운로드 완료: ${track.title}")
+                Log.d(TAG, "   📂 경로: $localPath")
+                Log.d(TAG, "   📊 파일 존재: ${file.exists()}")
+                Log.d(TAG, "   📊 파일 크기: ${file.length()} bytes")
+                Log.d(TAG, "   📊 읽기 가능: ${file.canRead()}")
+
+                if (!file.exists() || file.length() == 0L) {
+                    Log.e(TAG, "❌ 다운로드된 파일이 유효하지 않습니다!")
+                    return@withContext Result.failure(Exception("파일이 유효하지 않습니다"))
+                }
+
                 Result.success(localPath)
             } else {
+                Log.e(TAG, "❌ 다운로드 실패: ${track.title}")
                 Result.failure(Exception("다운로드 실패: ${track.title}"))
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "다운로드 오류: ${track.title}", e)
+            Log.e(TAG, "❌ 다운로드 오류: ${track.title}", e)
             Result.failure(e)
         }
     }

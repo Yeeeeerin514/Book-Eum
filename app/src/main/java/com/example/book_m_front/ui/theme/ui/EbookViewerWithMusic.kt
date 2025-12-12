@@ -1,5 +1,6 @@
 package com.example.book_m_front.ui.theme.ui
 
+import android.R.attr.duration
 import android.util.Log
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -92,12 +93,12 @@ fun EbookViewerWithMusicScreen(
     // ✅ 플레이리스트 (메타데이터 포함)
     val playlistWithMetadata by musicPlayerViewModel.playlist.collectAsState()
 
-    // ✅ 진행률 계산 (0.0 ~ 1.0)
+    /*// ✅ 진행률 계산 (0.0 ~ 1.0)
     val progress = if (duration > 0) {
         (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
     } else {
         0f
-    }
+    }*/
 
     // EPUB 파일 다운로드 및 파싱
     LaunchedEffect(bookIsbn) {
@@ -295,7 +296,7 @@ fun EbookViewerWithMusicScreen(
                 visible = showMusicPlayer,
                 enter = slideInVertically(initialOffsetY = { it }),
                 exit = slideOutVertically(targetOffsetY = { it }),
-                modifier = Modifier.align(Alignment.BottomCenter)
+                //modifier = Modifier.align(Alignment.BottomCenter)
             ) {
                 // MusicPlayerUI를 Card로 감싸서 하단에 표시
                 Card(
@@ -553,15 +554,16 @@ private val mockEpubContent = EpubContent(
 )
 
 private val mockPlaylist = listOf(
-    Music("1", "B-612", "오왠", "", ""),
-    Music("2", "사계", "태연", "", ""),
-    Music("3", "밤편지", "아이유", "", "")
+    Music("1", "B-612", "오왠", "", ),
+    Music("2", "사계", "태연", "", ),
+    Music("3", "밤편지", "아이유", "", )
 )
 
 // ============================================
 // 프리뷰
 // ============================================
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(
     name = "1. 이북 뷰어 - 라이트 모드",
     showBackground = true,
@@ -620,6 +622,7 @@ fun EbookViewerPreview_Light() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Preview(
     name = "2. 음악 플레이어 열림",
     showBackground = true,

@@ -65,7 +65,7 @@ class MusicController @Inject constructor(
             return
         }
 
-        Log.d(TAG, "🔄 MediaController 초기화 중...")
+        Log.d(TAG, "🔄 MediaController 초기화 시작...")
 
         val sessionToken = SessionToken(
             context,
@@ -77,6 +77,8 @@ class MusicController @Inject constructor(
             try {
                 mediaController = controllerFuture.get()
                 Log.d(TAG, "✅ MediaController 초기화 완료!")
+                Log.d(TAG, "   플레이어 상태: ${mediaController?.playbackState}")
+                Log.d(TAG, "   재생 중: ${mediaController?.isPlaying}")
                 setupPlayerListener()
             } catch (e: Exception) {
                 Log.e(TAG, "❌ MediaController 초기화 실패", e)
@@ -95,20 +97,24 @@ class MusicController @Inject constructor(
                     Player.STATE_BUFFERING -> "BUFFERING"
                     Player.STATE_READY -> "READY"
                     Player.STATE_ENDED -> "ENDED"
-                    else -> "UNKNOWN"
+                    else -> "UNKNOWN($playbackState)"
                 }
                 Log.d(TAG, "🎵 재생 상태 변경: $stateName")
 
                 when (playbackState) {
                     Player.STATE_IDLE -> _playerState.value = PlayerState.Idle
                     Player.STATE_BUFFERING -> _playerState.value = PlayerState.Buffering
-                    Player.STATE_READY -> _playerState.value = PlayerState.Ready
+                    Player.STATE_READY -> {
+                        _playerState.value = PlayerState.Ready
+                        _duration.value = mediaController?.duration ?: 0L
+                        Log.d(TAG, "   ⏱️ Duration: ${_duration.value}ms")
+                    }
                     Player.STATE_ENDED -> _playerState.value = PlayerState.Ended
                 }
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                Log.d(TAG, "🎵 재생 중: $isPlaying")
+                Log.d(TAG, "🎵 재생 중 변경: $isPlaying")
                 _isPlaying.value = isPlaying
                 if (isPlaying) {
                     startProgressUpdate()
@@ -118,7 +124,14 @@ class MusicController @Inject constructor(
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 val duration = mediaController?.duration ?: 0L
                 _duration.value = duration
-                Log.d(TAG, "🎵 곡 전환: ${mediaItem?.mediaMetadata?.title}, duration: ${duration}ms")
+                val title = mediaItem?.mediaMetadata?.title
+                Log.d(TAG, "🎵 곡 전환: $title, duration: ${duration}ms")
+            }
+
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                Log.e(TAG, "❌ 플레이어 오류 발생: ${error.errorCodeName}")
+                Log.e(TAG, "   메시지: ${error.message}")
+                Log.e(TAG, "   원인: ${error.cause}")
             }
         })
         Log.d(TAG, "✅ 플레이어 리스너 설정 완료")
@@ -214,7 +227,28 @@ class MusicController @Inject constructor(
      * 로컬 파일 재생
      */
     fun playLocalFile(localPath: String, music: MusicTrack? = null) {
-        Log.d(TAG, "🎵 로컬 파일 재생 시도: $localPath")
+        Log.d(TAG, "🎵 ===== 로컬 파일 재생 시도 =====")
+        Log.d(TAG, "   경로: $localPath")
+        Log.d(TAG, "   제목: ${music?.title ?: "Unknown"}")
+        Log.d(TAG, "   아티스트: ${music?.artist ?: "Unknown"}")
+
+        // 파일 존재 확인
+        val file = java.io.File(localPath)
+        Log.d(TAG, "📂 파일 검증:")
+        Log.d(TAG, "   존재: ${file.exists()}")
+        Log.d(TAG, "   크기: ${file.length()} bytes")
+        Log.d(TAG, "   읽기 가능: ${file.canRead()}")
+        Log.d(TAG, "   절대 경로: ${file.absolutePath}")
+
+        if (!file.exists()) {
+            Log.e(TAG, "❌ 파일이 존재하지 않습니다!")
+            return
+        }
+
+        if (file.length() == 0L) {
+            Log.e(TAG, "❌ 파일 크기가 0입니다!")
+            return
+        }
 
         if (mediaController == null) {
             Log.e(TAG, "❌ MediaController가 null입니다! 초기화 재시도...")
@@ -222,15 +256,20 @@ class MusicController @Inject constructor(
 
             // 초기화 후 재시도
             CoroutineScope(Dispatchers.Main).launch {
-                delay(500)
+                delay(1000) // 1초 대기
                 if (mediaController != null) {
+                    Log.d(TAG, "✅ MediaController 재초기화 성공, 재시도...")
                     playLocalFile(localPath, music)
                 } else {
-                    Log.e(TAG, "❌ MediaController 초기화 실패")
+                    Log.e(TAG, "❌ MediaController 재초기화 실패")
                 }
             }
             return
         }
+
+        Log.d(TAG, "🎵 MediaController 상태:")
+        Log.d(TAG, "   현재 재생 상태: ${mediaController?.playbackState}")
+        Log.d(TAG, "   재생 중: ${mediaController?.isPlaying}")
 
         val uri = "file://$localPath"
         Log.d(TAG, "📂 파일 URI: $uri")
@@ -250,17 +289,37 @@ class MusicController @Inject constructor(
         mediaController?.apply {
             Log.d(TAG, "🎵 MediaItem 설정 중...")
             setMediaItem(mediaItem)
+            Log.d(TAG, "🎵 prepare() 호출...")
             prepare()
+            Log.d(TAG, "🎵 play() 호출...")
             play()
-            Log.d(TAG, "✅ 재생 시작 명령 완료")
+            Log.d(TAG, "✅ 재생 명령 완료")
+
+            // 상태 확인
+            Log.d(TAG, "🔍 즉시 상태 확인:")
+            Log.d(TAG, "   playbackState: $playbackState")
+            Log.d(TAG, "   isPlaying: $isPlaying")
+            Log.d(TAG, "   playWhenReady: $playWhenReady")
         }
 
         _currentMusic.value = music
 
-        // 재생 상태 확인
+        // 1초 후 재생 상태 확인
         CoroutineScope(Dispatchers.Main).launch {
             delay(1000)
-            Log.d(TAG, "🔍 재생 상태 체크 - isPlaying: ${mediaController?.isPlaying}, playbackState: ${mediaController?.playbackState}")
+            Log.d(TAG, "🔍 ===== 1초 후 재생 상태 체크 =====")
+            Log.d(TAG, "   MediaController isPlaying: ${mediaController?.isPlaying}")
+            Log.d(TAG, "   MediaController playbackState: ${mediaController?.playbackState}")
+            Log.d(TAG, "   MediaController currentPosition: ${mediaController?.currentPosition}ms")
+            Log.d(TAG, "   MediaController duration: ${mediaController?.duration}ms")
+            Log.d(TAG, "   StateFlow isPlaying: ${_isPlaying.value}")
+            Log.d(TAG, "   StateFlow playerState: ${_playerState.value}")
+
+            if (mediaController?.isPlaying == false) {
+                Log.e(TAG, "❌ 1초 후에도 재생되지 않음!")
+                Log.e(TAG, "   playWhenReady: ${mediaController?.playWhenReady}")
+                Log.e(TAG, "   mediaItemCount: ${mediaController?.mediaItemCount}")
+            }
         }
     }
 
