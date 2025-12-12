@@ -170,8 +170,8 @@ data class BookUploadResponse(
 // ================== 플레이리스트 ==================
 data class MusicTrack(
     val id: String,                    // 음악 고유 ID
-    val title: String? = "music title",                 // 곡 제목
-    val artist: String? = "artist name",                // 아티스트
+    val title: String = "music title",                 // 곡 제목
+    val artist: String = "artist name",                // 아티스트
     val album: String? = null,         // 앨범명
     val duration: Long? = null,        // 재생 시간 (밀리초)
     val downloadUrl: String? = null,   // 다운로드 URL
