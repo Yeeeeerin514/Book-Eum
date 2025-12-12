@@ -32,6 +32,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.book_m_front.network.Api
 import com.example.book_m_front.network.downloadAndGetBookPath
 import com.example.book_m_front.network.dto.Music
+import com.example.book_m_front.network.dto.MusicTrack
 import com.example.book_m_front.ui.theme.ui_resource.AppColors
 import com.example.book_m_front.ui.theme.viewmodel.MusicPlayerViewModel
 import com.example.book_m_front.ui.theme.viewmodel.formatTime
@@ -61,7 +62,7 @@ fun EbookViewerWithMusicScreen(
     onBackClick: () -> Unit,
     musicPlayerViewModel: MusicPlayerViewModel = hiltViewModel(),
     ebookViewModel: EbookViewModel = viewModel()
-    ) {
+) {
 
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -81,7 +82,7 @@ fun EbookViewerWithMusicScreen(
     // 음악 플레이어 상태
     var showMusicPlayer by remember { mutableStateOf(true) }
 
-    // ✅ 수정: ViewModel에서 제공하는 상태들만 사용
+    // ✅ ViewModel에서 제공하는 상태들
     val playerState by musicPlayerViewModel.playerState.collectAsState()
     val playlist by musicPlayerViewModel.playlist.collectAsState()
     val isPlaying by musicPlayerViewModel.isPlaying.collectAsState()
@@ -89,7 +90,13 @@ fun EbookViewerWithMusicScreen(
     val duration by musicPlayerViewModel.duration.collectAsState()
     val currentTrack by musicPlayerViewModel.currentTrack.collectAsState()
 
-    // ✅ 수정: 진행률 계산 (0.0 ~ 1.0)
+    // ✅ 다운로드 관련 상태
+    val isDownloading by musicPlayerViewModel.isDownloading.collectAsState()
+    val downloadProgress by musicPlayerViewModel.downloadProgress.collectAsState()
+    val firstChapterReady by musicPlayerViewModel.firstChapterReady.collectAsState()
+    val localPlaylistPaths by musicPlayerViewModel.localPlaylistPaths.collectAsState()
+
+    // ✅ 진행률 계산 (0.0 ~ 1.0)
     val progress = if (duration > 0) {
         (currentPosition.toFloat() / duration.toFloat()).coerceIn(0f, 1f)
     } else {
@@ -126,16 +133,18 @@ fun EbookViewerWithMusicScreen(
         }
     }
 
-    // ✅ 올바른 구현: ISBN으로 자동 다운로드 및 재생
+    // ✅ ISBN으로 자동 다운로드 및 재생
     LaunchedEffect(bookIsbn) {
+        Log.d(TAG, "🎵 음악 플레이리스트 다운로드 시작: ISBN=$bookIsbn")
         musicPlayerViewModel.loadAndPlayPlaylist(bookIsbn)
     }
 
-    // ✅ 수정: 챕터 변경 시 음악 변경 (안전하게 처리)
-    LaunchedEffect(currentChapterIndex) {
-        if (playlist.isNotEmpty()) {
-            val trackIndex = currentChapterIndex % playlist.size
-            musicPlayerViewModel.playTrack(playlist[trackIndex])
+    // ✅ 챕터 변경 시 음악 변경 (로컬 파일 재생)
+    LaunchedEffect(currentChapterIndex, localPlaylistPaths) {
+        if (localPlaylistPaths.isNotEmpty()) {
+            val trackIndex = currentChapterIndex % localPlaylistPaths.size
+            Log.d(TAG, "📖 챕터 변경: $currentChapterIndex → 음악 인덱스: $trackIndex")
+            musicPlayerViewModel.playLocalFile(localPlaylistPaths[trackIndex])
         }
     }
 
@@ -203,43 +212,61 @@ fun EbookViewerWithMusicScreen(
                 )
             )
 
-            // 본문 영역
-            Box(modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth()) {
+            // 본문
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
                 when {
                     isLoading -> {
-                        CircularProgressIndicator(
-                            modifier = Modifier.align(Alignment.Center),
-                            color = AppColors.DeepGreen
-                        )
+                        // 로딩 상태
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                CircularProgressIndicator(color = Color(0xFF2D5F4D))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("책을 불러오는 중...", color = textColor)
+                            }
+                        }
                     }
                     errorMessage != null -> {
-                        Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                        // 에러 상태
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(errorMessage!!, color = Color.Red)
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(onClick = onBackClick) {
-                                Text("돌아가기")
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(32.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = Color.Red,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    errorMessage!!,
+                                    color = Color.Red,
+                                    textAlign = TextAlign.Center
+                                )
                             }
                         }
                     }
                     epubContent != null -> {
-                        ImprovedEbookContent(
-                            chapter = epubContent!!.chapters.getOrNull(currentChapterIndex),
+                        // EPUB 콘텐츠 표시
+                        EpubContentViewer(
+                            epubContent = epubContent!!,
+                            currentChapterIndex = currentChapterIndex,
                             fontSize = fontSize,
-                            textColor = textColor,
-                            backgroundColor = backgroundColor,
-                            onPreviousChapter = {
-                                if (currentChapterIndex > 0) {
-                                    currentChapterIndex--
-                                }
-                            },
-                            onNextChapter = {
-                                if (currentChapterIndex < epubContent!!.chapters.size - 1) {
-                                    currentChapterIndex++
+                            isDarkMode = isDarkMode,
+                            onChapterChange = { newIndex ->
+                                if (newIndex in epubContent!!.chapters.indices) {
+                                    currentChapterIndex = newIndex
                                 }
                             }
                         )
@@ -247,478 +274,473 @@ fun EbookViewerWithMusicScreen(
                 }
             }
 
-            // 하단 네비게이션
-            if (epubContent != null && epubContent!!.chapters.isNotEmpty()) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(backgroundColor)
-                        .padding(16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = {
-                            if (currentChapterIndex > 0) currentChapterIndex--
-                        },
-                        enabled = currentChapterIndex > 0
-                    ) {
-                        Text("이전")
+            // ✅ 수정: 실제 플레이리스트 데이터를 사용하는 음악 플레이어
+            AnimatedVisibility(
+                visible = showMusicPlayer,
+                enter = slideInVertically(initialOffsetY = { it }),
+                exit = slideOutVertically(targetOffsetY = { it })
+            ) {
+                CompactMusicPlayer(
+                    currentTrack = currentTrack,
+                    playlist = localPlaylistPaths.mapIndexed { index, path ->
+                        // ✅ 로컬 경로를 MusicTrack 형태로 변환 (메타데이터가 있으면 사용)
+                        MusicTrack(
+                            id = path,
+                            title = "Track ${index + 1}",
+                            artist = bookAuthor,
+                            albumArtUrl = null
+                        )
+                    },
+                    isPlaying = isPlaying,
+                    progress = progress,
+                    currentPosition = currentPosition,
+                    duration = duration,
+                    isDownloading = isDownloading,
+                    downloadProgress = downloadProgress,
+                    onPlayPause = { musicPlayerViewModel.togglePlayPause() },
+                    onNext = { musicPlayerViewModel.skipToNext() },
+                    onPrevious = { musicPlayerViewModel.skipToPrevious() },
+                    onSeek = { position -> musicPlayerViewModel.seekTo(position) },
+                    onTrackClick = { index ->
+                        if (index < localPlaylistPaths.size) {
+                            musicPlayerViewModel.playLocalFile(localPlaylistPaths[index])
+                        }
                     }
-                    Text(
-                        "${currentChapterIndex + 1} / ${epubContent!!.chapters.size}",
-                        modifier = Modifier.align(Alignment.CenterVertically),
-                        color = textColor
-                    )
-                    Button(
-                        onClick = {
-                            if (currentChapterIndex < epubContent!!.chapters.size - 1) {
-                                currentChapterIndex++
-                            }
-                        },
-                        enabled = currentChapterIndex < epubContent!!.chapters.size - 1
-                    ) {
-                        Text("다음")
-                    }
-                }
+                )
             }
-        }
-
-        // ✅ 음악 플레이어 (수정됨)
-        AnimatedVisibility(
-            visible = showMusicPlayer /*&& playlist.isNotEmpty()*/, //그냥 showMusicPlayer이면 무조건 띄우도록.
-            enter = slideInVertically(initialOffsetY = { it }),
-            exit = slideOutVertically(targetOffsetY = { it }),
-            modifier = Modifier.align(Alignment.BottomCenter)
-        ) {
-            MusicPlayerUI(viewModel = musicPlayerViewModel)
-            /*MusicPlayerCard(
-                currentTrack = currentTrack,
-                isPlaying = isPlaying,
-                progress = progress,
-                currentPosition = currentPosition,
-                duration = duration,
-                onPlayPause = { musicPlayerViewModel.togglePlayPause() },
-                onSeek = { position ->
-                    musicPlayerViewModel.seekTo((position * duration).toLong())
-                },
-                onNext = { musicPlayerViewModel.skipToNext() },
-                onPrevious = { musicPlayerViewModel.skipToPrevious() },
-                onClose = { showMusicPlayer = false }
-            )*/
         }
 
         // 챕터 목록 다이얼로그
         if (showChapterList && epubContent != null) {
-            ChapterListDialog(
-                chapters = epubContent!!.chapters,
-                currentIndex = currentChapterIndex,
-                onChapterSelect = { index ->
-                    currentChapterIndex = index
-                    showChapterList = false
+            AlertDialog(
+                onDismissRequest = { showChapterList = false },
+                title = { Text("챕터 목록") },
+                text = {
+                    LazyColumn {
+                        itemsIndexed(epubContent!!.chapters) { index, chapter ->
+                            Text(
+                                text = "${index + 1}. ${chapter.title}",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        currentChapterIndex = index
+                                        showChapterList = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                fontWeight = if (index == currentChapterIndex) FontWeight.Bold else FontWeight.Normal,
+                                color = if (index == currentChapterIndex) Color(0xFF2D5F4D) else Color.Black
+                            )
+                        }
+                    }
                 },
-                onDismiss = { showChapterList = false }
+                confirmButton = {
+                    TextButton(onClick = { showChapterList = false }) {
+                        Text("닫기")
+                    }
+                }
             )
         }
 
-        // 글자 크기 조절 다이얼로그
+        // 글자 크기 다이얼로그
         if (showFontSizeDialog) {
-            FontSizeDialog(
-                currentSize = fontSize,
-                onSizeChange = { fontSize = it },
-                onDismiss = { showFontSizeDialog = false }
+            AlertDialog(
+                onDismissRequest = { showFontSizeDialog = false },
+                title = { Text("글자 크기") },
+                text = {
+                    Column {
+                        Text("글자 크기: ${fontSize}px")
+                        Slider(
+                            value = fontSize.toFloat(),
+                            onValueChange = { fontSize = it.toInt() },
+                            valueRange = 12f..24f,
+                            steps = 11
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(onClick = { showFontSizeDialog = false }) {
+                        Text("확인")
+                    }
+                }
             )
         }
     }
 }
 
-// ✅ 수정: 음악 플레이어 카드
-@Composable
-fun MusicPlayerCard(
-    currentTrack: Music?,
-    isPlaying: Boolean,
-    progress: Float,
-    currentPosition: Long,
-    duration: Long,
-    onPlayPause: () -> Unit,
-    onSeek: (Float) -> Unit,
-    onNext: () -> Unit,
-    onPrevious: () -> Unit,
-    onClose: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF2D5F4D)
-        ),
-        elevation = CardDefaults.cardElevation(8.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // 닫기 버튼
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
-            ) {
-                IconButton(onClick = onClose) {
-                    Icon(
-                        Icons.Default.Close,
-                        "닫기",
-                        tint = Color.White
-                    )
-                }
-            }
-
-            // 곡 정보
-            Text(
-                text = currentTrack?.title ?: "재생 중인 곡 없음",
-                color = Color.White,
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1
-            )
-            Text(
-                text = currentTrack?.artist ?: "",
-                color = Color.White.copy(alpha = 0.8f),
-                fontSize = 14.sp,
-                maxLines = 1
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 진행 바
-            Slider(
-                value = progress,
-                onValueChange = onSeek,
-                colors = SliderDefaults.colors(
-                    thumbColor = Color.White,
-                    activeTrackColor = Color.White,
-                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                )
-            )
-
-            // 시간 표시
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    formatTime(currentPosition / 1000),
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 12.sp
-                )
-                Text(
-                    formatTime(duration / 1000),
-                    color = Color.White.copy(alpha = 0.7f),
-                    fontSize = 12.sp
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 컨트롤 버튼
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(onClick = onPrevious) {
-                    Icon(
-                        Icons.Default.SkipPrevious,
-                        "이전 곡",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-                IconButton(
-                    onClick = onPlayPause,
-                    modifier = Modifier.size(48.dp)
-                ) {
-                    Icon(
-                        if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                        "재생/일시정지",
-                        tint = Color.White,
-                        modifier = Modifier.size(48.dp)
-                    )
-                }
-                IconButton(onClick = onNext) {
-                    Icon(
-                        Icons.Default.SkipNext,
-                        "다음 곡",
-                        tint = Color.White,
-                        modifier = Modifier.size(32.dp)
-                    )
-                }
-            }
-        }
-    }
-}
+// ============================================
+// EPUB 콘텐츠 뷰어 (WebView 사용)
+// ============================================
 
 @Composable
-fun ImprovedEbookContent(
-    chapter: com.example.book_m_front.util.Chapter?,
+fun EpubContentViewer(
+    epubContent: EpubContent,
+    currentChapterIndex: Int,
     fontSize: Int,
-    textColor: Color,
-    backgroundColor: Color,
-    onPreviousChapter: () -> Unit,
-    onNextChapter: () -> Unit
+    isDarkMode: Boolean,
+    onChapterChange: (Int) -> Unit
 ) {
-    if (chapter == null) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("챕터 내용을 불러올 수 없습니다.", color = textColor)
+    val currentChapter = epubContent.chapters.getOrNull(currentChapterIndex)
+
+    if (currentChapter == null) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("챕터를 불러올 수 없습니다")
         }
         return
     }
 
-    val bodyStyle = """
-        <style>
-            body {
-                color: #${Integer.toHexString(textColor.toArgb()).substring(2)};
-                background-color: #${Integer.toHexString(backgroundColor.toArgb()).substring(2)};
-                font-size: ${fontSize}px;
-                line-height: 1.6;
-                padding: 16px;
-            }
-            img {
-                max-width: 100%;
-                height: auto;
-            }
-        </style>
+    val backgroundColor = if (isDarkMode) "#222522" else "#F5F8F5"
+    val textColor = if (isDarkMode) "#E0E0E0" else "#2C2C2C"
+
+    val htmlContent = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+            <style>
+                body {
+                    margin: 0;
+                    padding: 20px;
+                    background-color: $backgroundColor;
+                    color: $textColor;
+                    font-size: ${fontSize}px;
+                    line-height: 1.8;
+                    font-family: 'Noto Sans KR', sans-serif;
+                }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                }
+                p {
+                    margin-bottom: 1em;
+                }
+            </style>
+        </head>
+        <body>
+            ${currentChapter.content}
+        </body>
+        </html>
     """.trimIndent()
 
-    val styledHtmlContent = bodyStyle + chapter.content
-    val context = LocalContext.current
+    var webView: WebView? by remember { mutableStateOf(null) }
 
-    val webView = remember {
-        WebView(context).apply {
-            settings.apply {
-                javaScriptEnabled = true
-                domStorageEnabled = true
-                builtInZoomControls = true
-                displayZoomControls = false
-                cacheMode = WebSettings.LOAD_NO_CACHE
-            }
-            webViewClient = object : WebViewClient() {
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                }
-            }
-            setBackgroundColor(0)
-        }
-    }
-
-    LaunchedEffect(styledHtmlContent) {
-        webView.loadDataWithBaseURL(
-            null,
-            styledHtmlContent,
-            "text/html",
-            "utf-8",
-            null
-        )
-    }
-
-    DisposableEffect(Unit) {
-        onDispose {
-            try {
-                webView.stopLoading()
-            } catch (_: Exception) {}
-            webView.destroy()
-        }
-    }
-
-    Box(modifier = Modifier
-        .fillMaxSize()
-        .background(backgroundColor)
-        .pointerInput(Unit) {
-            detectTapGestures { offset ->
-                val width = size.width
-                if (offset.x < width / 4) {
-                    onPreviousChapter()
-                } else if (offset.x > width * 3 / 4) {
-                    onNextChapter()
-                }
-            }
-        }
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         AndroidView(
-            factory = { webView },
-            update = { },
-            modifier = Modifier.fillMaxSize()
+            factory = { context ->
+                WebView(context).apply {
+                    webViewClient = WebViewClient()
+                    settings.apply {
+                        javaScriptEnabled = true
+                        loadWithOverviewMode = true
+                        useWideViewPort = true
+                        builtInZoomControls = false
+                        displayZoomControls = false
+                    }
+                    setBackgroundColor(android.graphics.Color.parseColor(backgroundColor))
+                    loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+                    webView = this
+                }
+            },
+            update = { view ->
+                view.loadDataWithBaseURL(null, htmlContent, "text/html", "UTF-8", null)
+            },
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onTap = { offset ->
+                            val width = size.width
+                            when {
+                                offset.x < width / 3 -> {
+                                    // 왼쪽 탭: 이전 챕터
+                                    if (currentChapterIndex > 0) {
+                                        onChapterChange(currentChapterIndex - 1)
+                                    }
+                                }
+                                offset.x > width * 2 / 3 -> {
+                                    // 오른쪽 탭: 다음 챕터
+                                    if (currentChapterIndex < epubContent.chapters.size - 1) {
+                                        onChapterChange(currentChapterIndex + 1)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
         )
     }
 }
-
-@Composable
-fun ChapterListDialog(
-    chapters: List<com.example.book_m_front.util.Chapter>,
-    currentIndex: Int,
-    onChapterSelect: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("챕터 목록", fontWeight = FontWeight.Bold) },
-        text = {
-            val listState = rememberLazyListState(initialFirstVisibleItemIndex = currentIndex)
-            LazyColumn(state = listState) {
-                itemsIndexed(chapters) { index, chapter ->
-                    Text(
-                        text = "${index + 1}. ${chapter.title}",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onChapterSelect(index) }
-                            .padding(vertical = 12.dp),
-                        color = if (index == currentIndex) MaterialTheme.colorScheme.primary else Color.Unspecified,
-                        fontWeight = if (index == currentIndex) FontWeight.Bold else FontWeight.Normal
-                    )
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("닫기")
-            }
-        }
-    )
-}
-
-@Composable
-fun FontSizeDialog(
-    currentSize: Int,
-    onSizeChange: (Int) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("글자 크기 조절") },
-        text = {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(
-                    "가나다라",
-                    fontSize = currentSize.sp,
-                    modifier = Modifier.padding(vertical = 16.dp)
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("작게", fontSize = 12.sp)
-                    Slider(
-                        value = currentSize.toFloat(),
-                        onValueChange = { onSizeChange(it.toInt()) },
-                        valueRange = 12f..28f,
-                        steps = 15,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 8.dp)
-                    )
-                    Text("크게", fontSize = 18.sp)
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("확인")
-            }
-        }
-    )
-}
-
-
-
-
-// --- EbookViewerWithMusic.kt 파일 하단에 아래 코드를 추가하세요 ---
-
-// EbookViewerWithMusic.kt 파일 하단에 추가할 Preview 코드
-
-/**
- * 🎨 EbookViewerWithMusic 화면 프리뷰
- *
- * 다양한 상태를 미리 확인할 수 있습니다:
- * 1. 정상 로드 (음악 플레이어 포함)
- * 2. 로딩 중
- * 3. 에러 상태
- * 4. 다크 모드
- * 5. 음악 플레이어 열림
- */
 
 // ============================================
-// 프리뷰용 Mock 데이터
+// ✅ 수정된 컴팩트 음악 플레이어
+// ============================================
+
+@Composable
+fun CompactMusicPlayer(
+    currentTrack: MusicTrack?,
+    playlist: List<MusicTrack>,
+    isPlaying: Boolean,
+    progress: Float,
+    currentPosition: Long,
+    duration: Long,
+    isDownloading: Boolean,
+    downloadProgress: Float,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
+    onSeek: (Long) -> Unit,
+    onTrackClick: (Int) -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFF2D5F4D)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
+        ) {
+            // ✅ 다운로드 진행 상태 표시
+            if (isDownloading) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        "음악 다운로드 중...",
+                        color = Color.White,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        "${(downloadProgress * 100).toInt()}%",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                LinearProgressIndicator(
+                    progress = downloadProgress,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    color = Color.White,
+                    trackColor = Color.White.copy(alpha = 0.3f)
+                )
+                Divider(
+                    color = Color.White.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            // 플레이리스트 제목
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "플레이리스트 (${playlist.size}곡)",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Divider(
+                color = Color.White.copy(alpha = 0.3f),
+                modifier = Modifier.padding(vertical = 12.dp)
+            )
+
+            // ✅ 현재 재생 중인 곡
+            if (currentTrack != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // 앨범 아트
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Color.Gray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.MusicNote,
+                            contentDescription = null,
+                            tint = Color.White
+                        )
+                    }
+
+                    Spacer(Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            currentTrack.title,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 15.sp,
+                            maxLines = 1
+                        )
+                        Text(
+                            currentTrack.artist,
+                            color = Color.White.copy(alpha = 0.7f),
+                            fontSize = 13.sp,
+                            maxLines = 1
+                        )
+                    }
+
+                    IconButton(onClick = onPlayPause) {
+                        Icon(
+                            if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                            null,
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+
+                // 진행 바
+                Column {
+                    Slider(
+                        value = currentPosition.toFloat(),
+                        onValueChange = {},
+                        onValueChangeFinished = {},
+                        valueRange = 0f..duration.coerceAtLeast(1).toFloat(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = Color.White,
+                            activeTrackColor = Color.White,
+                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                        )
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            formatTime(currentPosition),
+                            color = Color.White.copy(0.7f),
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            formatTime(duration),
+                            color = Color.White.copy(0.7f),
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
+            }
+
+            // ✅ 플레이리스트 목록
+            if (playlist.isNotEmpty()) {
+                Text(
+                    "플레이리스트",
+                    color = Color.White,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                Spacer(Modifier.height(8.dp))
+
+                // 최대 3곡만 표시
+                playlist.take(3).forEachIndexed { index, track ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onTrackClick(index) }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            "${index + 1}",
+                            color = Color.White.copy(0.6f),
+                            fontSize = 14.sp,
+                            modifier = Modifier.width(24.dp)
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                track.title,
+                                color = Color.White,
+                                fontSize = 14.sp,
+                                maxLines = 1
+                            )
+                            Text(
+                                track.artist,
+                                color = Color.White.copy(0.6f),
+                                fontSize = 12.sp,
+                                maxLines = 1
+                            )
+                        }
+                        if (currentTrack?.id == track.id) {
+                            Icon(
+                                if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+
+                // 더 많은 곡이 있으면 표시
+                if (playlist.size > 3) {
+                    Text(
+                        "외 ${playlist.size - 3}곡",
+                        color = Color.White.copy(0.5f),
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+            } else {
+                // 플레이리스트가 비어있을 때
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        "플레이리스트가 비어있습니다",
+                        color = Color.White.copy(0.5f),
+                        fontSize = 14.sp
+                    )
+                }
+            }
+        }
+    }
+}
+
+// ============================================
+// Mock 데이터 (프리뷰용)
 // ============================================
 
 private val mockEpubContent = EpubContent(
     title = "어린왕자",
     author = "생텍쥐페리",
     chapters = listOf(
-        Chapter(
-            title = "1장: 사막에서의 만남",
-            content = """
-                <h2>1장: 사막에서의 만남</h2>
-                <p>어른들은 숫자를 좋아한다. 새로운 친구에 대해서 이야기 할 때, 
-                그들은 결코 본질적인 것에 대해서는 질문하지 않는다.</p>
-                <p>"그의 목소리는 어때? 그가 좋아하는 놀이는 뭐야? 나비를 수집하니?" 
-                라고는 결코 묻지 않는다.</p>
-                <p>대신 이렇게 묻는다. "그의 나이는 몇 살이야? 형제는 몇 명이야? 
-                몸무게는 얼마나 나가? 그의 아버지는 얼마나 버시니?" 
-                이런 질문을 하고 나서야 비로소 그를 알았다고 생각한다.</p>
-            """.trimIndent(),
-            href = "chapter1.html"
-        ),
-        Chapter(
-            title = "2장: 코끼리를 삼킨 보아뱀",
-            content = """
-                <h2>2장: 코끼리를 삼킨 보아뱀</h2>
-                <p>내가 여섯 살이었을 때, '살아있는 자연'이라는 원시림에 관한 책에서 
-                멋진 그림을 보았다.</p>
-                <p>그것은 보아뱀이 짐승을 삼키는 그림이었다.</p>
-            """.trimIndent(),
-            href = "chapter2.html"
-        ),
-        Chapter(
-            title = "3장: 양을 그려줘",
-            content = """
-                <h2>3장: 양을 그려줘</h2>
-                <p>사막에 불시착한 지 8일째 되던 날, 나는 어린 왕자의 이야기를 들었다.</p>
-                <p>"양을 그려줘..." 그가 말했다.</p>
-            """.trimIndent(),
-            href = "chapter3.html"
-        )
+        Chapter("1장", "<p>어렸을 때 나는 원시림에 관한 책에서 멋진 그림을 본 적이 있다...</p>"),
+        Chapter("2장", "<p>나는 사하라 사막에서 살았다...</p>"),
+        Chapter("3장", "<p>어린 왕자가 어디서 왔는지 알기까지는 시간이 걸렸다...</p>")
     )
 )
 
 private val mockPlaylist = listOf(
-    Music(
-        id = "1",
-        title = "B-612 (Prod. by IYAH)",
-        artist = "오왠(O.WHEN)",
-        album = "어린왕자 OST",
-        audioUrl = "https://example.com/music1.mp3",
-        albumArtUrl = "https://i.scdn.co/image/ab67616d0000b273abc123"
-    ),
-    Music(
-        id = "2",
-        title = "사막의 별",
-        artist = "김광석",
-        album = "어린왕자 삽입곡",
-        audioUrl = "https://example.com/music2.mp3",
-        albumArtUrl = "https://i.scdn.co/image/ab67616d0000b273def456"
-    ),
-    Music(
-        id = "3",
-        title = "장미 정원",
-        artist = "윤하",
-        album = "어린왕자 테마곡",
-        audioUrl = "https://example.com/music3.mp3",
-        albumArtUrl = "https://i.scdn.co/image/ab67616d0000b273ghi789"
-    )
+    Music("1", "별", "윤하", ""),
+    Music("2", "사계", "태연", ""),
+    Music("3", "밤편지", "아이유", "")
 )
-
 // ============================================
 // 1. 정상 로드 상태 (기본)
 // ============================================

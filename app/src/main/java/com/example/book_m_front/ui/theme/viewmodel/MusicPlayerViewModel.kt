@@ -21,7 +21,7 @@ import javax.inject.Inject
  * 🎵 음악 재생을 관리하는 통합 ViewModel (함수명 수정 버전)
  */
 @HiltViewModel
-class MusicPlayerViewModel @Inject constructor(
+open class MusicPlayerViewModel @Inject constructor(
     private val musicController: MusicController,
     private val musicRepository: MusicRepository,
     private val musicDownloadService: MusicDownloadService,  // ✅ 수정: 통합 서비스 사용
@@ -114,6 +114,8 @@ class MusicPlayerViewModel @Inject constructor(
                         Log.d(TAG, "✅ 전체 다운로드 완료! 총 ${allLocalPaths.size}곡")
                     }
                 )
+
+
 
                 if (result.isFailure) {
                     _errorMessage.value = result.exceptionOrNull()?.message ?: "다운로드 실패"

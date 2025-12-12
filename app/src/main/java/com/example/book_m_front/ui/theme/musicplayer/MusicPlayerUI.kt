@@ -66,6 +66,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.example.book_m_front.network.dto.Music
 import com.example.book_m_front.ui.theme.viewmodel.MusicPlayerViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 
 // ============================================
 // 6. UI - Jetpack Compose
@@ -572,88 +573,7 @@ fun FullMusicPlayerScreen(
 }
 
 
-/*
-@Composable
-fun MusicPlayerScreen(
-    viewModel: MusicPlayerViewModel = */
-/*hiltViewModel*//*
-viewModel()
-) {
-    // ViewModel의 StateFlow를 State로 변환 (자동 UI 업데이트)
-    val currentTrack by viewModel.currentTrack.collectAsState()
-    val isPlaying by viewModel.isPlaying.collectAsState()
-    val currentPosition by viewModel.currentPosition.collectAsState()
-    val duration by viewModel.duration.collectAsState()
-    val playerState by viewModel.playerState.collectAsState()
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.Black)
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Spacer(modifier = Modifier.height(40.dp))
-
-        // 앨범 커버 이미지
-        // Coil 라이브러리가 URL에서 이미지를 자동으로 다운로드해서 표시
-        AsyncImage(
-            model = currentTrack?.albumArtUrl, // 서버의 이미지 URL
-            contentDescription = "Album Cover",
-            modifier = Modifier
-                .size(300.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .background(Color.Gray),
-            contentScale = ContentScale.Crop
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 곡 제목
-        Text(
-            text = currentTrack?.title ?: "제목 없음",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White
-        )
-
-        // 아티스트명
-        Text(
-            text = currentTrack?.artist ?: "아티스트 없음",
-            fontSize = 16.sp,
-            color = Color.Gray,
-            modifier = Modifier.padding(top = 8.dp)
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 재생 진행 바 (슬라이더)
-        MusicProgressBar(
-            currentPosition = currentPosition,
-            duration = duration,
-            onSeek = { viewModel.seekTo(it) }
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // 재생 컨트롤 버튼들
-        MusicControls(
-            isPlaying = isPlaying,
-            onPlayPause = { viewModel.togglePlayPause() },
-            onPrevious = { viewModel.skipToPrevious() },
-            onNext = { viewModel.skipToNext() }
-        )
-
-        // 버퍼링 중일 때 로딩 인디케이터 표시
-        if (playerState is PlayerState.Buffering) {
-            CircularProgressIndicator(
-                modifier = Modifier.padding(top = 16.dp),
-                color = Color.White
-            )
-        }
-    }
-}
-*/
 
 // ============================================
 // 재생 진행 바
@@ -786,62 +706,32 @@ fun formatTime(milliseconds: Long): String {
  * 프리뷰에서 사용할 가짜 음악 데이터 목록
  */
 private val samplePlaylist = listOf(
-    Music("1", "사건의 지평선", "윤하", "https://i.scdn.co/image/ab67616d0000b273c4033f2d0d2a84a2a3e6c3e0", ),
-    Music("2", "Hype Boy", "NewJeans", "https://i.scdn.co/image/ab67616d0000b27318a03f488d57865c2763c298", ),
-    Music("3", "LOVE DIVE", "IVE (아이브)", "https://i.scdn.co/image/ab67616d0000b273a2dd49b88f8324671a56f296", ),
-    Music("4", "긴 제목 테스트: 이 노래의 제목은 화면을 넘어갈 정도로 아주 깁니다", "긴 아티스트 이름", "https://i.scdn.co/image/ab67616d0000b273a3a8a3a0d4b2b3a0d4b2b3a0", )
+    Music("1", "사건의 지평선", "윤하", "https://i.scdn.co/image/ab67616d0000b273c4033f2d0d2a84a2a3e6c3e0"),
+    Music(
+        "2",
+        "Hype Boy",
+        "NewJeans",
+        "https://i.scdn.co/image/ab67616d0000b27318a03f488d57865c2763c298"
+    ),
+    Music(
+        "3",
+        "LOVE DIVE",
+        "IVE (아이브)",
+        "https://i.scdn.co/image/ab67616d0000b273a2dd49b88f8324671a56f296"
+    ),
+    Music(
+        "4",
+        "긴 제목 테스트: 이 노래의 제목은 화면을 넘어갈 정도로 아주 깁니다",
+        "긴 아티스트 이름",
+        "https://i.scdn.co/image/ab67616d0000b273a3a8a3a0d4b2b3a0d4b2b3a0"
+    )
 )
 
 // --- PlaylistScreen 관련 프리뷰 ---
-/*
 
-@Preview(name = "Playlist - Loaded", showBackground = true)
-@Composable
-fun PlaylistScreenPreview_Loaded() {
-    // 가짜 ViewModel을 만들고 상태를 직접 설정합니다.
-    val viewModel: MusicPlayerViewModel = viewModel()
-    viewModel.playlist.value = samplePlaylist
-    viewModel.currentTrack.value = samplePlaylist[1] // "Hype Boy"를 현재 곡으로 설정
-    viewModel.isPlaying.value = true
-    viewModel.isLoading.value = false
-    viewModel.errorMessage.value = null
 
-    PlaylistScreen(viewModel = viewModel, onTrackClick = {})
-}
 
-@Preview(name = "Playlist - Loading", showBackground = true)
-@Composable
-fun PlaylistScreenPreview_Loading() {
-    val viewModel: MusicPlayerViewModel = viewModel()
-    viewModel.isLoading.value = true
-    viewModel.errorMessage.value = null
-    viewModel.playlist.value = emptyList()
 
-    PlaylistScreen(viewModel = viewModel, onTrackClick = {})
-}
-
-@Preview(name = "Playlist - Error", showBackground = true)
-@Composable
-fun PlaylistScreenPreview_Error() {
-    val viewModel: MusicPlayerViewModel = viewModel()
-    viewModel.isLoading.value = false
-    viewModel.errorMessage.value = "네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
-    viewModel.playlist.value = emptyList()
-
-    PlaylistScreen(viewModel = viewModel, onTrackClick = {})
-}
-
-@Preview(name = "Playlist - Empty", showBackground = true)
-@Composable
-fun PlaylistScreenPreview_Empty() {
-    val viewModel: MusicPlayerViewModel = viewModel()
-    viewModel.isLoading.value = false
-    viewModel.errorMessage.value = null
-    viewModel.playlist.value = emptyList()
-
-    PlaylistScreen(viewModel = viewModel, onTrackClick = {})
-}
-*/
 
 
 // --- 개별 컴포넌트 프리뷰 ---
